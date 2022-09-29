@@ -1,0 +1,15 @@
+
+
+
+HIGH LEVEL:
+
+addShortPosition(shortTokenAddress)
+
+closeShortPostion (needs a parameter with percentage)
+
+getUserPositions - get all user positions
+
+getUserPosition - get user position by address (may not be necessary)
+
+
+We may have to revisit this, in an effort to minimize gas spent = minimizing computation
