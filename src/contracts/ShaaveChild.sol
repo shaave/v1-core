@@ -142,6 +142,15 @@ contract ShaaveChild is Ownable, ReentrancyGuard {
         }
     }
 
+    /** 
+    * @dev This function is used to calculate a trade's gains.
+    * @param _shortTokenAddress The address of the short token the user wants to reduce his or her position in.
+    * @param _variableDebtTokenAddress The address of Aave's variable debt token contract, for the given short token.
+    * @param _percentageReduction The percentage reduction of the user's short position; 100% constitutes closing out the position.
+    * @return gains The gains the trade at hand yielded; this value will be paid out to the user.
+    * @notice debtValueBase This total debt's value in the base asset (collateral asset), for a specific asset.
+    * @notice positionBackingCollateralTokenAmount The amount of base (collateral) asset this contract has allocated for a specific asset short position.
+    **/
     function calculatePositionGains(
         address _shortTokenAddress,
         address _variableDebtTokenAddress,
@@ -160,25 +169,16 @@ contract ShaaveChild is Ownable, ReentrancyGuard {
     }
 
 
-    /* 
-    How this function works:
-    We allow 70% of collateral provided on Aave to be used to back multiple asset borrows (ex: BTC, ETH, LINK)
-    => This means that some "borrow values (in USDC)" can increase, and some can decrease.
-    => For simplicity, we can just readjust the (borrow value: collateral) ratio to our artificially
-    imposed 70% LTV every sell event, regardless of whether or not the individual trade was profitable or not
-    => This means the user could receive some collateral back on both a profitable and a non-profitable trade.
-    */
-    function calculateCollateralWithdrawAmount(
-        uint _shortTokenReductionAmount
-    ) private returns (uint withdrawalAmount) {
+    /** 
+    * @dev This function is used to calculate the amount of collateral that can be withdrawn at any given sell event.
+    *      It's structured to always withdraw the maximum amount of collateral, such that the ratio of total debt to 
+    *      total collateral remains below 70%.
+    * @return withdrawalAmount The gains the trade at hand yielded; this value will be paid out to the user.
+    * @notice totalDebtBase is the value of debt, in the base (collateral) token across all borrowed assets.
+    **/
+    function calculateCollateralWithdrawAmount() private returns (uint withdrawalAmount) {
         
-        // NOTE: totalDebtBase is the value of debt across all borrowed assets
         (uint totalCollateralBase, uint totalDebtBase, , , , ) = IPool(aavePoolAddress).getUserAccountData(user);
-
-        
-
-        uint currentAssetPrice = IAaveOracle(aaveOracleAddress).getAssetPrice(_shortTokenAddress);
-        reductionAmountBase = currentAssetPrice * _shortTokenReductionAmount;
 
         int maxWithdrawal = totalCollateralBase - (totalDebtBase / 0.70);  //FIXME: may need to scale here
 
