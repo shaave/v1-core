@@ -100,7 +100,7 @@ contract ShaaveParent {
     * @dev This function returns a calling user's delegated contract address, if they have one.
     * @return userChildContract The user's delegated contract address.
     **/
-    function returnUserContractBySender() public returns (address userChildContract) {
+    function returnChildContractBySender() public returns (address userChildContract) {
         userChildContract = userContracts[msg.sender];
         require(userChildContract != address(0), "User doesn't have a shAave account.");
     }
