@@ -3,5 +3,4 @@
 @uniswap-v3-core/=lib/v3-core/contracts
 @openzeppelin-contracts/=lib/openzeppelin-contracts/contracts
 @uniswap/v3-core/contracts/=lib/v3-core/contracts
-@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts
 forge-std/=lib/forge-std/src/

@@ -80,23 +80,6 @@ contract ShaaveParent {
     }
 
     /** 
-    * @dev This function is used to reduce a user's short position.
-    * @param _shortTokenAddress The address of the short token the user wants to reduce his or her position in
-    * @param _percentageReduction The percentage reduction of the user's short position; 100% constitutes closing out the position
-    **/
-    function reducePosition(
-        address _shortTokenAddress,
-        uint _percentageReduction
-    ) public returns (bool success) {
-        // Check if user's account exists... If it doesn't, can't close anything out.
-        address userChildContract = userContracts[msg.sender];
-        require(userChildContract == address(0), "User doesn't have a shAave account.");
-        require(_percentageReduction > 100, "Percentage cannot exceed 100.");
-
-        IShaaveChild(userChildContract).reducePosition(_shortTokenAddress, _percentageReduction);
-    }
-
-    /** 
     * @dev This function returns the amount of a collateral necessary for a desired amount of a short position.
     * @param _collateralTokenAddress The address of the token the user wants to post as collateral.
     * @param _shortTokenAddress The address of the token the user wants to short.
@@ -139,7 +122,6 @@ contract ShaaveParent {
     function retrieveChildContracts() public adminOnly returns (address[]) {
         return childContracts;
     }
-
 
     modifier adminOnly() {
         require(msg.sender == admin);
