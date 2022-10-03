@@ -4,11 +4,10 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 // Local Imports
-import "./libraries/logic/ShaaveChildLogic.sol";
+import "./libraries/logic/ShaaveUtilities.sol";
 
 // External Package Imports
 import "@aave-protocol/interfaces/IPool.sol";
-import "@aave-protocol/interfaces/IAaveOracle.sol";
 import "@openzeppelin-contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin-contracts/access/Ownable.sol";
 import "@openzeppelin-contracts/security/ReentrancyGuard.sol";
@@ -38,7 +37,7 @@ contract ShaaveChild is Ownable, ReentrancyGuard {
     address[] private openShortPositions;    //TODO: Add and remove from this
 
     // -- Aave Variables --
-    address public collateralTokenAddress = 0xA2025B15a1757311bfD68cb14eaeFCc237AF5b43;    // Goerli Aave USDC
+    address public baseTokenAddress = 0xA2025B15a1757311bfD68cb14eaeFCc237AF5b43;    // Goerli Aave USDC
     address public aavePoolAddress = 0x368EedF3f56ad10b9bC57eed4Dac65B26Bb667f6;           // Goerli Aave Pool Address
     address public aaveOracleAddress = 0x5bed0810073cc9f0DacF73C648202249E87eF6cB;         // Goerli Aave Oracle Address
 
@@ -71,17 +70,16 @@ contract ShaaveChild is Ownable, ReentrancyGuard {
     ) public onlyOwner returns (bool) {
 
         // 1. Calculate the amount that can be borrowed
-        uint currentAssetPrice = IAaveOracle(aaveOracleAddress).getAssetPrice(_shortTokenAddress);
-        uint loanToValueRatio = 0.7 * 100;
-        uint borrowAmount = (((_collateralTokenAmount * loanToValueRatio) / 100) / currentAssetPrice) * 1e18;
-
+        uint priceOfShortTokenInBase = ShaaveUtilities.getAssetPriceInBase(baseTokenAddress, _shortTokenAddress);
+        uint loanToValueRatio = 70;
+        uint borrowAmount = (((_collateralTokenAmount * loanToValueRatio) / 100) / priceOfShortTokenInBase) * 1e18;
 
         // 2. Since parent supplied collateral on this contract's behalf, borrow asset
         IPool(aavePoolAddress).borrow(_shortTokenAddress, borrowAmount, 2, 0, address(this));
         emit BorrowSuccess(_userAddress, _shortTokenAddress, _shortTokenAmount);
 
         // 3. Swap borrowed asset for collateral token
-        (uint amountIn, uint amountOut) = swapExactInput(swapRouter, _shortTokenAddress, collateralTokenAddress, borrowAmount, poolFee);
+        (uint amountIn, uint amountOut) = swapExactInput(swapRouter, _shortTokenAddress, baseTokenAddress, borrowAmount, poolFee);
         emit PositionAddedSuccess(_userAddress, _shortTokenAddress, _shortTokenAmount);
 
         // 4. Update user's accounting
@@ -102,7 +100,8 @@ contract ShaaveChild is Ownable, ReentrancyGuard {
     **/
     function reducePosition(
         address _shortTokenAddress,
-        uint _percentageReduction
+        uint _percentageReduction,
+        bool _withdrawCollateral
     ) public returns (bool) {
 
         require(msg.sender == user, "Unauthorized.");
@@ -117,11 +116,11 @@ contract ShaaveChild is Ownable, ReentrancyGuard {
         // 3. Calculate the amount of short tokens the short position will be reduced by
         uint shortTokenReductionAmount = (totalShortTokenDebt * _percentageReduction) / 100;
 
-        // 4. Obtain child contract's total collateral token balance; it will be used during the swap process
+        // 4. Obtain child contract's total base token balance; it will be used during the swap process
         uint positionbackingBaseAmount = userPositions[_shortTokenAddress].backingBaseAmount;
 
-        // 5. Swap short tokens for collateral tokens
-        (uint amountIn, uint amountOut) = swapToShortToken(_shortTokenAddress, collateralTokenAddress, shortTokenReductionAmount, positionbackingBaseAmount);
+        // 5. Swap short tokens for base tokens
+        (uint amountIn, uint amountOut) = swapToShortToken(_shortTokenAddress, baseTokenAddress, shortTokenReductionAmount, positionbackingBaseAmount);
 
         // 6. Update child contract's accounting
         // If it has no debtTokens, remove from open positions array.
@@ -136,12 +135,14 @@ contract ShaaveChild is Ownable, ReentrancyGuard {
         uint gains = calculatePositionGains(_shortTokenAddress, variableDebtTokenAddress, _percentageReduction);
 
         // 9. Withdraw correct percentage of collateral, and return to user
-        uint withdrawalAmount = calculateCollateralWithdrawAmount(shortTokenReductionAmount);
+        if (_withdrawCollateral) {
+            uint withdrawalAmount = calculateCollateralWithdrawAmount(shortTokenReductionAmount);
 
-        if (withdrawalAmount > 0) {
-            IPool(aavePoolAddress).withdraw(collateralTokenAddress, withdrawalAmount, user);
+            if (withdrawalAmount > 0) {
+                IPool(aavePoolAddress).withdraw(baseTokenAddress, withdrawalAmount, user);
+            }
         }
-
+        
         // 10. Pay out gains to the user
         if (gains > 0) {
             user.transfer(gains);
@@ -162,10 +163,10 @@ contract ShaaveChild is Ownable, ReentrancyGuard {
         address _variableDebtTokenAddress,
         uint _percentageReduction
     ) private returns (uint gains) {
-        uint currentAssetPrice = IAaveOracle(aaveOracleAddress).getAssetPrice(_shortTokenAddress);
-        // Probably fetch price of USDC as well
+
+        uint priceOfShortTokenInBase = ShaaveUtilities.getAssetPriceInBase(baseTokenAddress, _shortTokenAddress);
         uint totalShortTokenDebt = IERC20(_variableDebtTokenAddress).balanceOf(address(this));
-        uint debtValueBase = currentAssetPrice * totalShortTokenDebt;
+        uint debtValueBase = priceOfShortTokenInBase * totalShortTokenDebt;
         uint positionbackingBaseAmount = userPositions[_shortTokenAddress].backingBaseAmount;
 
         if (positionbackingBaseAmount > debtValueBase) {
@@ -202,12 +203,13 @@ contract ShaaveChild is Ownable, ReentrancyGuard {
     * @return amountIn the amountIn to supply to uniswap when swapping to short tokens.
     **/
     function getAmountIn(uint _shortTokenReductionAmount, address _shortTokenAddress, uint _positionbackingBaseAmount) private returns (uint amountIn) {
-        uint currentAssetPrice = IAaveOracle(aaveOracleAddress).getAssetPrice(_shortTokenAddress);
-        uint currentAssetPriceWei = (currentAssetPrice / 1e8) * 1e18;
-        uint reductionAmountBase = currentAssetPriceWei * _shortTokenReductionAmount;
         
-        if (reductionAmountBase <= _positionbackingBaseAmount) {
-            amountIn = reductionAmountBase;
+        uint priceOfShortTokenInBase = ShaaveUtilities.getAssetPriceInBase(baseTokenAddress, _shortTokenAddress);
+
+        uint shortTokenReductionAmountBase = priceOfShortTokenInBase * _shortTokenReductionAmount;
+
+        if (shortTokenReductionAmountBase <= _positionbackingBaseAmount) {
+            amountIn = shortTokenReductionAmountBase * 1e18;
         } else {
             amountIn = _positionbackingBaseAmount;
         }
@@ -294,36 +296,35 @@ contract ShaaveChild is Ownable, ReentrancyGuard {
 
 
     /** 
-    * @dev This function repays all child's outstanding (per asset) debt, in the case where all base token has been used already.
-    * @param _shortTokenAddress The address of the token the user wants to short.
-    * @param _paymentToken The address of the token used to repay outstanding debt (either collateral token or short token).
+    * @dev  This function repays all child's outstanding (per asset) debt, in the case where all base token has been used already.
+    * @param _shortTokenAddress The address of the token the user has shorted.
+    * @param _paymentToken The address of the token used to repay outstanding debt (either base token or short token).
     **/
-    function repayOutstandingDebt(address _shortTokenAddress, address _paymentToken, uint _paymentAmount) public adminOnly returns (bool) {
+    function repayOutstandingDebt(address _shortTokenAddress, address _paymentToken, uint _paymentAmount, bool _withdrawCollateral) public adminOnly returns (bool) {
         require(userPositions[_shortTokenAddress].backingBaseAmount == 0, "Position is still open. Use reducePosition() first. If any debt remains after, then use repayOutstandingDebt()");
-        require(_paymentToken == _shortTokenAddress || _paymentToken == collateralTokenAddress, "Payment must be in the form of either the short token or the collateral token.");
+        require(_paymentToken == _shortTokenAddress || _paymentToken == baseTokenAddress, "Payment must be in the form of either the short token or the collateral token.");
 
         if (_paymentToken == _shortTokenAddress) {
+            // 1. Transfer short tokens to this contract, so it can repay the Aave loan.
             IERC20(_shortTokenAddress).transferFrom(msg.sender, address(this), _paymentAmount);
 
-            // X. Repay Aave loan with the amount of short token received from Uniswap
+            // 2. Repay Aave loan with the amount of short token supplied by the user.
             IPool(aavePoolAddress).repay(_shortTokenAddress, _paymentAmount, 2, address(this));
 
-            // X. Withdraw correct percentage of collateral, and return to user
-            uint withdrawalAmount = calculateCollateralWithdrawAmount(shortTokenReductionAmount);
-
-            IPool(aavePoolAddress).withdraw(collateralTokenAddress, withdrawalAmount, user);
         } else {
-            IERC20(collateralTokenAddress).transferFrom(msg.sender, address(this), _paymentAmount);
+            // 1. Transfer base tokens to this contract, so it can swap them for short tokens.
+            IERC20(baseTokenAddress).transferFrom(msg.sender, address(this), _paymentAmount);
 
-            // Swap
+            // 2. Swap base tokens for short tokens, that will be used to repay the Aave loan.
+            (amountIn, amountOut) = swapExactInput(baseTokenAddress, _shortTokenAddress, _paymentAmount);
 
-            // X. Repay Aave loan with the amount of short token received from Uniswap
-            IPool(aavePoolAddress).repay(_shortTokenAddress, _paymentAmount, 2, address(this));
+            // 3. Repay Aave loan with the amount of short tokens received from Uniswap.
+            IPool(aavePoolAddress).repay(_shortTokenAddress, amountOut, 2, address(this));
+        }
 
-            // X. Withdraw correct percentage of collateral, and return to user
+        if (_withdrawCollateral) {
             uint withdrawalAmount = calculateCollateralWithdrawAmount(shortTokenReductionAmount);
-
-            IPool(aavePoolAddress).withdraw(collateralTokenAddress, withdrawalAmount, user);
+            IPool(aavePoolAddress).withdraw(baseTokenAddress, withdrawalAmount, user);
         }
     }
 

@@ -11,6 +11,7 @@ import "@aave-protocol/interfaces/IAaveOracle.sol";
 // Local
 import "../interfaces/IShaaveChild.sol";
 import "./ShaaveChild.sol";
+import "./libraries/logic/ShaaveUtilities.sol";
 
 
 /// @title shAave parent contract, which orchestrates children contracts
@@ -22,7 +23,7 @@ contract ShaaveParent {
     address[] private childContracts;
 
     // -- Aave Variables --
-    address public collateralTokenAddress = 0xA2025B15a1757311bfD68cb14eaeFCc237AF5b43;    // Goerli Aave USDC
+    address public baseTokenAddress = 0xA2025B15a1757311bfD68cb14eaeFCc237AF5b43;    // Goerli Aave USDC
     address public aavePoolAddress = 0x368EedF3f56ad10b9bC57eed4Dac65B26Bb667f6;           // Goerli Aave Pool Address
     address public aaveOracleAddress = 0x5bed0810073cc9f0DacF73C648202249E87eF6cB;         // Goerli Aave Oracle Address
     
@@ -49,7 +50,7 @@ contract ShaaveParent {
         address userChildContract = userContracts[msg.sender];
 
         if (userChildContract == address(0)) {
-            address userChildContract = new ShaaveChild();
+            ShaaveChild userChildContract = new ShaaveChild();
             userContracts[msg.sender] = address(userChildContract);
             childContracts.push(address(userChildContract));
         }
@@ -91,8 +92,8 @@ contract ShaaveParent {
         address _shortTokenAddress,
         uint _shortTokenAmount
     ) public pure returns (uint collateralTokenAmount) {
-        uint assetPrice = IAaveOracle(aaveOracleAddress).getAssetPrice(_shortTokenAddress);
-        uint amountShortTokenCost = _shortTokenAmount * assetPrice;
+        uint priceOfShortTokenInBase = ShaaveUtilities.getAssetPriceInBase(baseTokenAddress, _shortTokenAddress);
+        uint amountShortTokenCost = _shortTokenAmount * priceOfShortTokenInBase;
         collateralTokenAmount = (amountShortTokenCost / .70) * 1e18;
     }
 
