@@ -1,0 +1,24 @@
+ONE:
+- Changed child contract type to Child at creation
+- Fix getAmountIn()
+- swap all collaterals for bases (where it makes sense)
+- Fix all pricing -- needs to be in terms of USDC, not USD (similar to how we did it for UNI)
+- Make a "getPriceInUSDC()" funciton 
+- Make withdrawing optional at sell event (1/2 complete)
+- Update accounting State before sending gains to user
+
+
+TODO:
+- Document that collater = base -- Consider whether to call it that or collateral token every where
+- After MVP, could make an external library for other devs to use
+- Consider putting getAmountIn(), and "closeOutCalculations()" in the same library or a library of their own
+- If there is outstanding debt:
+    - The frontend/client contract needs to know about that... => we need to have a function for that
+        -> This would be for cases where backing base amount == 0 and debtTokenBalance != 0
+    - If the user decides to pay the outstanding debt in the base token, we need a function that will return exactly how much to pay
+        -> We already have this... It's the library! 
+              - Option 1: Frontend talks directly to a deployed external library
+              - Option 2: We have a (temporary) funciton that the frontend can hit, which returns that data from the internal library [Let's do this for now, until we figure out how to make library external]
+                    -> We can deploy THE library on test net, get it's address, and then talk to it in another deployed contract.
+                          -> Do we need to seperately deploy it? And if so, how do instantiate it... Do libraries have interfaces? Or is there some other way... 
+- Since we made collateral withdraw optional, we now need an additional function that allows users to withdraw the max amount (or up to the max amount) of collateral 

@@ -144,6 +144,7 @@ contract ShaaveChild is Ownable, ReentrancyGuard {
 
         // 10. Pay out gains to the user
         if (gains > 0) {
+            userPositions[_shortTokenAddress].backingBaseAmount -= gains;
             user.transfer(gains);
         }
     }
