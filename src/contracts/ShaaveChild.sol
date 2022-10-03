@@ -1,4 +1,4 @@
-// contracts/ShortStop.sol
+// contracts/ShaaveChild.sol
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.10;
 pragma abicoder v2;
@@ -203,7 +203,8 @@ contract ShaaveChild is Ownable, ReentrancyGuard {
     **/
     function getAmountIn(uint _shortTokenReductionAmount, address _shortTokenAddress, uint _positionbackingBaseAmount) private returns (uint amountIn) {
         uint currentAssetPrice = IAaveOracle(aaveOracleAddress).getAssetPrice(_shortTokenAddress);
-        reductionAmountBase = currentAssetPrice * _shortTokenReductionAmount;
+        uint currentAssetPriceWei = (currentAssetPrice / 1e8) * 1e18;
+        uint reductionAmountBase = currentAssetPriceWei * _shortTokenReductionAmount;
         
         if (reductionAmountBase <= _positionbackingBaseAmount) {
             amountIn = reductionAmountBase;
@@ -264,7 +265,7 @@ contract ShaaveChild is Ownable, ReentrancyGuard {
                 tokenIn: _tokenInAddress,
                 tokenOut: _tokenOutAddress,
                 fee: poolFee,
-                recipient: msg.sender,
+                recipient: address(this),
                 deadline: block.timestamp,
                 amountOut: _tokenOutAmount,
                 amountInMaximum: _amountInMaximum,
@@ -273,18 +274,18 @@ contract ShaaveChild is Ownable, ReentrancyGuard {
         
         try swapRouter.exactOutputSingle(params) returns (uint returnedAmountIn) {
 
-            emit SwapSuccess(msg.sender, _tokenInAddress, amount, _tokenOutAddress, _tokenOutAmount);
+            emit SwapSuccess(msg.sender, _tokenInAddress, returnedAmountIn, _tokenOutAddress, _tokenOutAmount);
             (amountIn, amountOut) = (returnedAmountIn, _tokenOutAmount);
 
         } catch Error(string memory reason) {
 
-            uint amountIn = getAmountIn(_tokenOutAmount, _tokenOutAddress, _amountInMaximum);
+            amountIn = getAmountIn(_tokenOutAmount, _tokenOutAddress, _amountInMaximum);
             emit ErrorString(reason, "Uniswap's exactOutputSingle() failed. Trying exactInputSingle() now.");
             (amountIn, amountOut) = swapExactInput(_tokenInAddress, _tokenOutAddress, amountIn);
 
         } catch (bytes memory reason) {
 
-            uint amountIn = getAmountIn(_tokenOutAmount, _tokenOutAddress, _amountInMaximum);
+            amountIn = getAmountIn(_tokenOutAmount, _tokenOutAddress, _amountInMaximum);
             emit LowLevelError(reason, "Uniswap's exactOutputSingle() failed. Trying exactInputSingle() now.");
             (amountIn, amountOut) = swapExactInput(_tokenInAddress, _tokenOutAddress, amountIn);
 
