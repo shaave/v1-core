@@ -11,7 +11,7 @@ import "@aave-protocol/interfaces/IAaveOracle.sol";
 // Local
 import "../interfaces/IShaaveChild.sol";
 import "./ShaaveChild.sol";
-import "./libraries/logic/ShaaveUtilities.sol";
+import "./libraries/logic/ShaavePricing.sol";
 
 
 /// @title shAave parent contract, which orchestrates children contracts
@@ -84,7 +84,7 @@ contract ShaaveParent {
     * @dev This function returns the amount of a collateral necessary for a desired amount of a short position.
     * @param _collateralTokenAddress The address of the token the user wants to post as collateral.
     * @param _shortTokenAddress The address of the token the user wants to short.
-    * @param _shortTokenAmount The amount of the token the user wants to short.
+    * @param _shortTokenAmount The amount of the token the user wants to short (in WEI).
     * @return collateralTokenAmount The amount of the collateral token the user will need to supply, in order to short the inputted amount of the short token.
     **/
     function getNeededCollateralAmount(
@@ -92,9 +92,9 @@ contract ShaaveParent {
         address _shortTokenAddress,
         uint _shortTokenAmount
     ) public pure returns (uint collateralTokenAmount) {
-        uint priceOfShortTokenInBase = ShaaveUtilities.getAssetPriceInBase(baseTokenAddress, _shortTokenAddress);
-        uint amountShortTokenCost = _shortTokenAmount * priceOfShortTokenInBase;
-        collateralTokenAmount = (amountShortTokenCost / .70) * 1e18;
+        uint priceOfShortTokenInBase = ShaavePricing.getAssetPriceInBase(baseTokenAddress, _shortTokenAddress);  
+        uint amountShortTokenBase = (_shortTokenAmount * priceOfShortTokenInBase) / 1e18; // price and amount are both in WEI (WEI^2), so divide by 1e18 to get WEI (This works in Remix)
+        collateralTokenAmount = (amountShortTokenBase / .70); // TODO: Ain't gonna work
     }
 
     /** 

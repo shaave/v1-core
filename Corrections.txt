@@ -1,24 +1,48 @@
-ONE:
+DONE:
 - Changed child contract type to Child at creation
 - Fix getAmountIn()
 - swap all collaterals for bases (where it makes sense)
 - Fix all pricing -- needs to be in terms of USDC, not USD (similar to how we did it for UNI)
 - Make a "getPriceInUSDC()" funciton 
-- Make withdrawing optional at sell event (1/2 complete)
+- Make withdrawing optional at sell event (2/2 complete)
 - Update accounting State before sending gains to user
+- Consider putting getAmountIn(), and "closeOutCalculations()" in the same library or a library of their own
+- Test whether we can work with updated variables in state after we update them
+    -> It is sychronous, which is good
+- If a subfunction is adminOnly, can a parent function call it if the sender is admin?
+- If there is outstanding debt:
+    - Built function that let's frontend know whether or not there is any outstanding debt
+    - Update hasDebt = true when opening (or reopening position)
+    - Update hasDebt = false when no more debt exists (debtToken)
+    - Update openPositions array when opening or (reopening a position)
+    - Update openPositions array when all base tokens have been exhausted
+- Ensured we're grabbing debt token correctly with newly found struct object information
+- Now returning a list of structs for aggregated contract data
+
 
 
 TODO:
 - Document that collater = base -- Consider whether to call it that or collateral token every where
 - After MVP, could make an external library for other devs to use
-- Consider putting getAmountIn(), and "closeOutCalculations()" in the same library or a library of their own
 - If there is outstanding debt:
-    - The frontend/client contract needs to know about that... => we need to have a function for that
-        -> This would be for cases where backing base amount == 0 and debtTokenBalance != 0
     - If the user decides to pay the outstanding debt in the base token, we need a function that will return exactly how much to pay
         -> We already have this... It's the library! 
               - Option 1: Frontend talks directly to a deployed external library
               - Option 2: We have a (temporary) funciton that the frontend can hit, which returns that data from the internal library [Let's do this for now, until we figure out how to make library external]
-                    -> We can deploy THE library on test net, get it's address, and then talk to it in another deployed contract.
-                          -> Do we need to seperately deploy it? And if so, how do instantiate it... Do libraries have interfaces? Or is there some other way... 
+- Consider allowing shAave previledge to see all user data
+                   
 - Since we made collateral withdraw optional, we now need an additional function that allows users to withdraw the max amount (or up to the max amount) of collateral 
+- Ensure all functions that can be made "view" are made "view" (All "give me data" functions)
+- KEY WORDS TO DELETE: Remix, gonna work
+
+
+Remix Testing:
+- We can deploy THE library on test net, get it's address, and then talk to it in another deployed contract.
+        -> Do we need to seperately deploy it? And if so, how do instantiate it... Do libraries have interfaces? Or is there some other way... 
+
+- Test repayOutstandingDebt() process (builiding upon the Aave code we already have)
+- Building on the same Aave test, test the calculate gains and withdraw collateral INSIDE of a library
+
+
+
+

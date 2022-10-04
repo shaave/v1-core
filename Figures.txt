@@ -1,0 +1,9 @@
+
+Aave:
+- getUserAccountData()
+    - totalCollateralBase = ether units * 1e8
+    - totalDebtbase = ether units * 1e8
+
+- pricingOracle() = ether units * 1e8
+
+- debtToken() = ether units * 1e18
