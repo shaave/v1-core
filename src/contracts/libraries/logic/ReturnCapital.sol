@@ -41,7 +41,7 @@ library ReturnCapital {
     ) internal view returns (uint gains) {
 
         uint priceOfShortTokenInBase = ShaavePricing.getAssetPriceInBase(_baseTokenAddress, _shortTokenAddress);
-        uint debtValueBase = priceOfShortTokenInBase * _totalShortTokenDebt;
+        uint debtValueBase = (priceOfShortTokenInBase * _totalShortTokenDebt) / 1e18; // TODO: Test calculation
 
         if (_positionbackingBaseAmount > debtValueBase) {
             gains = (_percentageReduction * (_positionbackingBaseAmount - debtValueBase)) / 100; // Works in Remix

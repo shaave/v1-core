@@ -1,0 +1,21 @@
+
+Aave:
+- getUserAccountData()
+    - totalCollateralBase = ether units * 1e8 (WEI / 1e10)
+    - totalDebtbase = ether units * 1e8 (WEI / 1e10)
+
+- pricingOracle() = ether units * 1e8 (WEI / 1e10)
+
+- debtToken() = ether units * 1e18 (WEI)
+
+
+Uniswap:
+
+amountOut from exactInputSingle() = ether units * 1e18 (WEI)
+
+
+USDC (specifically) ERC20 balanceOf()
+- Goerli: ether units * 1e6 (WEI / 1e12)
+- Polygon Mainnet: ether units * 1e6 (WEI / 1e12)
+
+Non-USDC ERC20 balance0f() = ether units * 1e18 (WEI)

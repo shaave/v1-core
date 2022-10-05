@@ -34,6 +34,8 @@ TODO:
 - Since we made collateral withdraw optional, we now need an additional function that allows users to withdraw the max amount (or up to the max amount) of collateral 
 - Ensure all functions that can be made "view" are made "view" (All "give me data" functions)
 - KEY WORDS TO DELETE: Remix, gonna work
+- Remove reentrancy guard for erc20 transfer
+- With newfound divider function, ensure all calculations work with a returned WEI
 
 
 Remix Testing:
