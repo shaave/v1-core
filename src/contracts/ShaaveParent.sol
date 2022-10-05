@@ -11,7 +11,7 @@ import "@aave-protocol/interfaces/IAaveOracle.sol";
 // Local
 import "../interfaces/IShaaveChild.sol";
 import "./ShaaveChild.sol";
-import "./libraries/logic/ShaavePricing.sol";
+import "./libraries/ShaavePricing.sol";
 
 
 /// @title shAave parent contract, which orchestrates children contracts
@@ -93,8 +93,8 @@ contract ShaaveParent {
         uint _shortTokenAmount
     ) public pure returns (uint collateralTokenAmount) {
         uint priceOfShortTokenInBase = ShaavePricing.getAssetPriceInBase(baseTokenAddress, _shortTokenAddress);  
-        uint amountShortTokenBase = (_shortTokenAmount * priceOfShortTokenInBase) / 1e18; // price and amount are both in WEI (WEI^2), so divide by 1e18 to get WEI (This works in Remix)
-        collateralTokenAmount = (amountShortTokenBase / .70); // TODO: Ain't gonna work
+        uint amountShortTokenBase = (_shortTokenAmount * priceOfShortTokenInBase) / 1e18;                   // TODO: fix
+        collateralTokenAmount = (amountShortTokenBase / .70);                                               // TODO: Ain't gonna work
     }
 
     /** 

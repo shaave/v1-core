@@ -4,9 +4,9 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 // Local Imports
-import "./libraries/logic/ShaavePricing.sol";
-import "./libraries/logic/ReturnCapital.sol";
-import "./libraries/logic/AddressArray.sol";
+import "./libraries/ShaavePricing.sol";
+import "./libraries/ReturnCapital.sol";
+import "./libraries/AddressArray.sol";
 
 // External Package Imports
 import "@aave-protocol/interfaces/IPool.sol";
@@ -128,7 +128,7 @@ contract ShaaveChild is Ownable, ReentrancyGuard {
         uint totalShortTokenDebt = getOutstandingDebt(_shortTokenAddress);
 
         // 2. Calculate the amount of short tokens the short position will be reduced by
-        uint shortTokenReductionAmount = (totalShortTokenDebt * _percentageReduction) / 100;
+        uint shortTokenReductionAmount = (totalShortTokenDebt * _percentageReduction) / 100;                        // TODO: Fix
 
         // 3. Obtain child contract's total base token balance; it will be used during the swap process
         uint backingBaseAmount = userPositions[_shortTokenAddress].backingBaseAmount;
