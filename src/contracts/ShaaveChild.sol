@@ -44,12 +44,12 @@ contract ShaaveChild is Ownable {
 
     // -- Aave Variables --
     address public baseTokenAddress = 0xA2025B15a1757311bfD68cb14eaeFCc237AF5b43;    // Goerli Aave USDC
-    address public aavePoolAddress = 0x368EedF3f56ad10b9bC57eed4Dac65B26Bb667f6;           // Goerli Aave Pool Address
-    address public aaveOracleAddress = 0x5bed0810073cc9f0DacF73C648202249E87eF6cB;         // Goerli Aave Oracle Address
+    address public aavePoolAddress = 0x368EedF3f56ad10b9bC57eed4Dac65B26Bb667f6;     // Goerli Aave Pool Address
+    address public aaveOracleAddress = 0x5bed0810073cc9f0DacF73C648202249E87eF6cB;   // Goerli Aave Oracle Address
 
     // -- Uniswap Variables --
     uint24 constant poolFee = 3000;
-    ISwapRouter public immutable swapRouter = ISwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);  // Goerli
+    ISwapRouter public immutable swapRouter = ISwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);  // Goerli Uniswap SwapRouter Address
 
     // Events
     event BorrowSuccess(address user, address borrowTokenAddress, uint amount);
@@ -74,7 +74,6 @@ contract ShaaveChild is Ownable {
         uint _collateralTokenAmount,
         address _userAddress
     ) public onlyOwner returns (bool) {
-
         // 1. Calculate the amount that can be borrowed
         uint priceOfShortTokenInBase = _shortTokenAddress.pricedIn(baseTokenAddress);     // Wei
         uint loanToValueRatio = 70;
@@ -130,18 +129,16 @@ contract ShaaveChild is Ownable {
         // 2. Calculate the amount of short tokens the short position will be reduced by
         uint shortTokenReductionAmount = (totalShortTokenDebt * _percentageReduction).dividedBy(100, 0);    // Wei
 
-        // 3. Obtain child contract's total base token balance; it will be used during the swap process
-        uint backingBaseAmount = userPositions[_shortTokenAddress].backingBaseAmount;
+        // 3. Swap short tokens for base tokens
+        (uint amountIn, uint amountOut) = swapToShortToken(_shortTokenAddress, baseTokenAddress, shortTokenReductionAmount, userPositions[_shortTokenAddress].backingBaseAmount);
 
-        // 4. Swap short tokens for base tokens
-        (uint amountIn, uint amountOut) = swapToShortToken(_shortTokenAddress, baseTokenAddress, shortTokenReductionAmount, backingBaseAmount);
-
-        // 5. Repay Aave loan with the amount of short token received from Uniswap
+        // 4. Repay Aave loan with the amount of short token received from Uniswap
+        IERC20(_shortTokenAddress).approve(aavePoolAddress, amountOut);
         IPool(aavePoolAddress).repay(_shortTokenAddress, amountOut, 2, address(this));
 
         uint debtAfterRepay = getOutstandingDebt(_shortTokenAddress);
 
-        // 6. Update child contract's accounting
+        // 5. Update child contract's accounting
         userPositions[_shortTokenAddress].baseAmountsSwapped.push(amountIn);
         userPositions[_shortTokenAddress].shortTokenAmountsReceived.push(amountOut);
         userPositions[_shortTokenAddress].backingBaseAmount -= amountIn;
@@ -256,18 +253,17 @@ contract ShaaveChild is Ownable {
             emit SwapSuccess(msg.sender, _tokenInAddress, returnedAmountIn, _tokenOutAddress, _tokenOutAmount);
             (amountIn, amountOut) = (returnedAmountIn, _tokenOutAmount);
 
-        } catch Error(string memory reason) {
-
+        } catch Error(string memory message) {
+            
+            emit ErrorString(message, "Uniswap's exactOutputSingle() failed. Trying exactInputSingle() instead.");
             amountIn = getAmountIn(_tokenOutAmount, _tokenOutAddress, _amountInMaximum);
-            emit ErrorString(reason, "Uniswap's exactOutputSingle() failed. Trying exactInputSingle() now.");
             (amountIn, amountOut) = swapExactInput(_tokenInAddress, _tokenOutAddress, amountIn);
 
-        } catch (bytes memory reason) {
-
+        } catch (bytes memory data) {
+            emit LowLevelError(data, "Uniswap's exactOutputSingle() failed. Trying exactInputSingle() instead.");
             amountIn = getAmountIn(_tokenOutAmount, _tokenOutAddress, _amountInMaximum);
-            emit LowLevelError(reason, "Uniswap's exactOutputSingle() failed. Trying exactInputSingle() now.");
             (amountIn, amountOut) = swapExactInput(_tokenInAddress, _tokenOutAddress, amountIn);
-
+        
         }
     }
 
@@ -289,6 +285,7 @@ contract ShaaveChild is Ownable {
             IERC20(_shortTokenAddress).transferFrom(msg.sender, address(this), _paymentAmount);
 
             // ii. Repay Aave loan with the amount of short token supplied by the user.
+            IERC20(_shortTokenAddress).approve(aavePoolAddress, _paymentAmount);
             IPool(aavePoolAddress).repay(_shortTokenAddress, _paymentAmount, 2, address(this));
 
         } else {
