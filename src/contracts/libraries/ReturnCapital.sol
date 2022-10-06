@@ -54,8 +54,9 @@ library ReturnCapital {
 
     /** 
     * @dev This function is used to calculate the amount of collateral (in Wei) that can be withdrawn at any given sell event.
-    *      It's structured to always withdraw the maximum amount of collateral from Aave with a 10% buffer, such that 
-    *      the total ratio of debt to collateral remains below 70% (Aave's max is 80% for USDC).
+    *      It's structured to always withdraw the maximum amount of collateral from Aave with a 10% buffer (to prevent damaging
+    *      the child contract's health factor on Aaave), such that the debt-to-collateral ratio remains below 70% (Aave's max 
+    *      is 80% for USDC).
     * @param _childAddress The address of the contract that's attempting to withdraw collateral.
     * @return withdrawalAmount The amount of collateral (in Wei) to be withdrawn to the user.
     * @notice totalCollateralBase The total collateral supplied on the child contract's behalf (must multiply by 1e10 to get Wei)
@@ -69,10 +70,13 @@ library ReturnCapital {
     **/
     function calculateCollateralWithdrawAmount(address _childAddress) internal view returns (uint withdrawalAmount) {
 
-        (uint totalCollateralBase, uint totalDebtBase, , , , ) = IPool(aavePoolAddress).getUserAccountData(_childAddress);    // Must multiply by 1e10 to get Wei
-        
-        uint uncapturedCollateral = (9999999999.dividedBy(70,0) * 100);                                                       // Wei
-        uint maxWithdrawal = ((totalCollateralBase - (totalDebtBase.dividedBy(70, 0) * 100)) * 1e10) - uncapturedCollateral;  // Wei
+        (uint totalCollateralBase, uint totalDebtBase, , , , ) = IPool(aavePoolAddress).getUserAccountData(_childAddress);   // Must multiply by 1e10 to get Wei
+
+        uint maxUncapturedDebt = 9999999999;
+
+        uint uncapturedCollateral = (maxUncapturedDebt.dividedBy(70,0) * 100);                                                  // Wei
+        uint maxWithdrawal = ((totalCollateralBase - (totalDebtBase.dividedBy(70, 0) * 100)) * 1e10) - uncapturedCollateral;    // Wei
+
 
         if (maxWithdrawal > 0) {
             withdrawalAmount = maxWithdrawal;
@@ -81,9 +85,3 @@ library ReturnCapital {
         }
     }   
 }
-
-// TODO: Next Steps:
-// 1. Test maxWithdrawal math in Remix
-// 2. Retest AaveRepayWithCapitalReturn in Remix (with new ReturnCapital library)
-// 3. Ensure library funciton calls are updated everywhere
-// 4. Make sure that unit notes are clear everywhere (i.e., no more Ether * 1e8)

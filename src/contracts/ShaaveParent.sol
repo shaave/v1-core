@@ -92,9 +92,9 @@ contract ShaaveParent {
         address _shortTokenAddress,
         uint _shortTokenAmount
     ) public pure returns (uint collateralTokenAmount) {
-        uint priceOfShortTokenInBase = ShaavePricing.getAssetPriceInBase(baseTokenAddress, _shortTokenAddress);  
-        uint amountShortTokenBase = (_shortTokenAmount * priceOfShortTokenInBase) / 1e18;                   // TODO: fix
-        collateralTokenAmount = (amountShortTokenBase / .70);                                               // TODO: Ain't gonna work
+        uint priceOfShortTokenInBase = _shortTokenAddress.pricedIn(_baseTokenAddress);                 // Wei
+        uint amountShortTokenBase = (shortTokenAmount * priceOfShortTokenInBase).dividedBy(1e18, 0);   // Wei
+        collateralTokenAmount = (amountShortTokenBase.dividedBy(70, 0)) * 100;                         // Wei
     }
 
     /** 
