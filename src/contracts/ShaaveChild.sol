@@ -10,15 +10,16 @@ import "./libraries/AddressArray.sol";
 
 // External Package Imports
 import "@aave-protocol/interfaces/IPool.sol";
-import "@openzeppelin-contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin-contracts/access/Ownable.sol";
-import "@openzeppelin-contracts/security/ReentrancyGuard.sol";
+import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@uniswap-v3-periphery/interfaces/ISwapRouter.sol";
 import "@uniswap-v3-periphery/libraries/TransferHelper.sol";
 
 /// @title shAave child contract, owned by the ShaaveParent
-contract ShaaveChild is Ownable, ReentrancyGuard {
+contract ShaaveChild is Ownable {
     using AddressArray for address[];
+    using ShaavePricing for address;
+    using Math for uint;
 
     // -- ShaaveChild Variables --
     struct PositionData {
@@ -48,10 +49,10 @@ contract ShaaveChild is Ownable, ReentrancyGuard {
 
     // -- Uniswap Variables --
     uint24 constant poolFee = 3000;
-    ISwapRouter public immutable swapRouter = 0xE592427A0AEce92De3Edee1F18E0157C05861564;  // Goerli
+    ISwapRouter public immutable swapRouter = ISwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);  // Goerli
 
     // Events
-    event BorrowSuccess(address borrowTokenAddress, uint amount);
+    event BorrowSuccess(address user, address borrowTokenAddress, uint amount);
     event SwapSuccess(address user, address tokenInAddress, uint tokenInAmount, address tokenOutAddress, uint tokenOutAmount);
     event PositionAddedSuccess(address user, address shortTokenAddress, uint amount);
     event ErrorString(string errorMessage, string executionInsight);
@@ -84,11 +85,11 @@ contract ShaaveChild is Ownable, ReentrancyGuard {
         emit BorrowSuccess(_userAddress, _shortTokenAddress, borrowAmount);
 
         // 3. Swap borrowed asset for collateral token
-        (uint amountIn, uint amountOut) = swapExactInput(swapRouter, _shortTokenAddress, baseTokenAddress, borrowAmount, poolFee);
+        (uint amountIn, uint amountOut) = swapExactInput(_shortTokenAddress, baseTokenAddress, borrowAmount);
         emit PositionAddedSuccess(_userAddress, _shortTokenAddress, borrowAmount);
 
         // 4. Update user's accounting
-        if (userPositions[_shortTokenAddress] == address(0)) {
+        if (userPositions[_shortTokenAddress].shortTokenAddress == address(0)) {
             userPositions[_shortTokenAddress].shortTokenAddress = _shortTokenAddress;
         }
 
@@ -119,16 +120,15 @@ contract ShaaveChild is Ownable, ReentrancyGuard {
         address _shortTokenAddress,
         uint _percentageReduction,
         bool _withdrawCollateral
-    ) public returns (bool) {
+    ) public adminOnly returns (bool) {
 
-        require(msg.sender == user, "Unauthorized.");
         require(_percentageReduction <= 100, "Percentage cannot exceed 100.");
 
         // 1. Fetch this contract's outstanding debt for the supplied short token.
         uint totalShortTokenDebt = getOutstandingDebt(_shortTokenAddress);
 
         // 2. Calculate the amount of short tokens the short position will be reduced by
-        shortTokenReductionAmount = (totalShortTokenDebt * percentageReduction).dividedBy(100, 0);    // Wei
+        uint shortTokenReductionAmount = (totalShortTokenDebt * _percentageReduction).dividedBy(100, 0);    // Wei
 
         // 3. Obtain child contract's total base token balance; it will be used during the swap process
         uint backingBaseAmount = userPositions[_shortTokenAddress].backingBaseAmount;
@@ -168,8 +168,8 @@ contract ShaaveChild is Ownable, ReentrancyGuard {
         
         // 9. Pay out gains to the user
         if (gains > 0) {
+            IERC20(baseTokenAddress).transfer(msg.sender, gains.dividedBy(1e12, 0));
             userPositions[_shortTokenAddress].backingBaseAmount -= gains;
-            user.transfer(gains);
         }
     }
 
@@ -180,9 +180,9 @@ contract ShaaveChild is Ownable, ReentrancyGuard {
     **/
     function getAmountIn(uint _shortTokenReductionAmount, address _shortTokenAddress, uint _backingBaseAmount) private returns (uint amountIn) {
         
-        uint priceOfShortTokenInBase = _shortTokenAddress.pricedIn(_baseTokenAddress);     // Wei
+        uint priceOfShortTokenInBase = _shortTokenAddress.pricedIn(baseTokenAddress);     // Wei
 
-        uint shortTokenReductionAmountBase = (priceOfShortTokenInBase * shortTokenReductionAmount).dividedBy(1e18, 0);    // Wei
+        uint shortTokenReductionAmountBase = (priceOfShortTokenInBase * _shortTokenReductionAmount).dividedBy(1e18, 0);    // Wei
 
         if (shortTokenReductionAmountBase <= _backingBaseAmount) {
             amountIn = shortTokenReductionAmountBase * 1e18;
@@ -226,8 +226,9 @@ contract ShaaveChild is Ownable, ReentrancyGuard {
     * @param _tokenOutAmount The amount of the token, in WEI, that this function is attempting to obtain from Uniswap
     * @param _tokenInAddress The address of the token that this function is attempting to spend for output tokens.
     * @param _amountInMaximum The maximum amount of input tokens this contract is willing to spend for output tokens.
-    * @return amount The amount returned from Uniswap (this can be an amountIn or amountOut, denoted by amountType)
-    * @return amountType The type of amount (0 = amountIn, 1 = amountOut) 
+
+    * @return amountIn The amount of tokens supplied to Uniswap for a desired token output amount
+    * @return amountOut The amount of tokens received from Uniswap
     **/
     function swapToShortToken(
         address _tokenOutAddress,
@@ -295,7 +296,7 @@ contract ShaaveChild is Ownable, ReentrancyGuard {
             IERC20(baseTokenAddress).transferFrom(msg.sender, address(this), _paymentAmount);
 
             // ii. Swap base tokens for short tokens, that will be used to repay the Aave loan.
-            (amountIn, amountOut) = swapExactInput(baseTokenAddress, _shortTokenAddress, _paymentAmount);
+            (uint amountIn, uint amountOut) = swapExactInput(baseTokenAddress, _shortTokenAddress, _paymentAmount);
 
             // iii. Repay Aave loan with the amount of short tokens received from Uniswap.
             IPool(aavePoolAddress).repay(_shortTokenAddress, amountOut, 2, address(this));
@@ -318,15 +319,15 @@ contract ShaaveChild is Ownable, ReentrancyGuard {
     * @param _shortTokenAddress The address of the token the user has shorted.
     * @return outStandingDebt This contract's total debt for a given short token.
     **/
-    function getOutstandingDebt(address _shortTokenAddress) public view adminOnly returns (uint outStandingDebt) {
+    function getOutstandingDebt(address _shortTokenAddress) public view adminOnly returns (uint outstandingDebt) {
         address variableDebtTokenAddress = IPool(aavePoolAddress).getReserveData(_shortTokenAddress).variableDebtTokenAddress;
-        outStandingDebt = IERC20(variableDebtTokenAddress).balanceOf(address(this));
+        outstandingDebt = IERC20(variableDebtTokenAddress).balanceOf(address(this));
     }
 
-    function getOutstandingDebtBase(address _shortTokenAddress) {
-        uint priceOfShortTokenInBase = _shortTokenAddress.pricedIn(_baseTokenAddress);     // Wei
+    function getOutstandingDebtBase(address _shortTokenAddress) public view adminOnly returns (uint outstandingDebtBase) {
+        uint priceOfShortTokenInBase = _shortTokenAddress.pricedIn(baseTokenAddress);     // Wei
         uint totalShortTokenDebt = getOutstandingDebt(_shortTokenAddress);
-
+        // TODO: finish writting this
     }
 
 
@@ -338,7 +339,7 @@ contract ShaaveChild is Ownable, ReentrancyGuard {
 
         PositionData[] memory aggregatedPositionData = new PositionData[](openShortPositions.length);
         for (uint i = 0; i < openShortPositions.length; i++) {
-                PositionData storage position = positionData[openShortPositions[i]];
+                PositionData storage position = userPositions[openShortPositions[i]];
                 aggregatedPositionData[i] = position;
         }
         return aggregatedPositionData;

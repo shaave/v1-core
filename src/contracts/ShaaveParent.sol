@@ -4,7 +4,7 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 // External Packages
-import "@openzeppelin-contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@aave-protocol/interfaces/IPool.sol";
 import "@aave-protocol/interfaces/IAaveOracle.sol";
 
@@ -47,19 +47,19 @@ contract ShaaveParent {
         require(_shortTokenAddress != address(0), "_shortTokenAddress must be a nonzero address.");
 
         // 1. Create new user's child contract, if the user does not already have one
-        address userChildContract = userContracts[msg.sender];
+        address childContractAddress = userContracts[msg.sender];
 
-        if (userChildContract == address(0)) {
-            ShaaveChild userChildContract = new ShaaveChild();
-            userContracts[msg.sender] = address(userChildContract);
-            childContracts.push(address(userChildContract));
+        if (childContractAddress == address(0)) {
+            childContractAddress = address(new ShaaveChild(msg.sender));
+            userContracts[msg.sender] = childContractAddress;
+            childContracts.push(childContractAddress);
         }
 
         // 2. Supply collateral on behalf of user's child contract        
-        supplyOnBehalfOfChild(userChildContract, _collateralTokenAmount);
+        supplyOnBehalfOfChild(childContractAddress, _collateralTokenAmount);
 
-        // 3. Finish shorting process by calling finishShortingProcess() on user's child contract
-        IShaaveChild(userChildContract).short(_shortTokenAddress, _collateralTokenAmount, msg.sender);
+        // 3. Finish shorting process on user's child contract
+        IShaaveChild(childContractAddress).short(_shortTokenAddress, _collateralTokenAmount, msg.sender);
     }
 
 
@@ -70,13 +70,13 @@ contract ShaaveParent {
     **/
     function supplyOnBehalfOfChild(address _userChildContract, uint _collateralTokenAmount) private returns (bool) {
         // 1. Transfer the user's collateral amount to this contract, so it can supply collateral to Aave
-        IERC20(collateralTokenAddress).transferFrom(msg.sender, address(this), _collateralTokenAmount);
+        IERC20(baseTokenAddress).transferFrom(msg.sender, address(this), _collateralTokenAmount);
 
         // 2. Approve Aave to handle collateral on this contract's behalf
-        IERC20(collateralTokenAddress).approve(aavePoolAddress, _collateralTokenAmount);
+        IERC20(baseTokenAddress).approve(aavePoolAddress, _collateralTokenAmount);
 
         // 3. Supply collateral to Aave, on the user's child contract's behalf
-        IPool(aavePoolAddress).supply(collateralTokenAddress, _collateralTokenAmount, _userChildContract, 0);
+        IPool(aavePoolAddress).supply(baseTokenAddress, _collateralTokenAmount, _userChildContract, 0);
         emit CollateralSuccess(msg.sender, _collateralTokenAmount);
     }
 
@@ -92,8 +92,8 @@ contract ShaaveParent {
         address _shortTokenAddress,
         uint _shortTokenAmount
     ) public pure returns (uint collateralTokenAmount) {
-        uint priceOfShortTokenInBase = _shortTokenAddress.pricedIn(_baseTokenAddress);                 // Wei
-        uint amountShortTokenBase = (shortTokenAmount * priceOfShortTokenInBase).dividedBy(1e18, 0);   // Wei
+        uint priceOfShortTokenInBase = _shortTokenAddress.pricedIn(baseTokenAddress);                 // Wei
+        uint amountShortTokenBase = (_shortTokenAmount * priceOfShortTokenInBase).dividedBy(1e18, 0);   // Wei
         collateralTokenAmount = (amountShortTokenBase.dividedBy(70, 0)) * 100;                         // Wei
     }
 
@@ -120,7 +120,7 @@ contract ShaaveParent {
     * @dev This adminOnly function returns a an array of all users' associated child contracts.
     * @return userChildContract The user's delegated contract address.
     **/
-    function retrieveChildContracts() public adminOnly returns (address[]) {
+    function retrieveChildContracts() public adminOnly returns (address[] memory) {
         return childContracts;
     }
 
