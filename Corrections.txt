@@ -18,32 +18,26 @@ DONE:
     - Update openPositions array when all base tokens have been exhausted
 - Ensured we're grabbing debt token correctly with newly found struct object information
 - Now returning a list of structs for aggregated contract data
-
-
-
-TODO:
-- Document that collater = base -- Consider whether to call it that or collateral token every where
-- After MVP, could make an external library for other devs to use
+- Remove reentrancy guard for erc20 transfer
+- With newfound divider function, ensure all calculations work with a returned WEI
+- KEY WORDS TO DELETE: Remix, gonna work
+- Ensure all functions that can be made "view" are made "view" (All "give me data" functions)
 - If there is outstanding debt:
     - If the user decides to pay the outstanding debt in the base token, we need a function that will return exactly how much to pay
         -> We already have this... It's the library! 
               - Option 1: Frontend talks directly to a deployed external library
               - Option 2: We have a (temporary) funciton that the frontend can hit, which returns that data from the internal library [Let's do this for now, until we figure out how to make library external]
+- We need a function that returns user account data
+
+
+TODO:
+- Document that collater = base -- Consider whether to call it that or collateral token every where
+- After MVP, could make an external library for other devs to use
 - Consider allowing shAave previledge to see all user data
-                   
-- Since we made collateral withdraw optional, we now need an additional function that allows users to withdraw the max amount (or up to the max amount) of collateral 
-- Ensure all functions that can be made "view" are made "view" (All "give me data" functions)
-- KEY WORDS TO DELETE: Remix, gonna work
-- Remove reentrancy guard for erc20 transfer
-- With newfound divider function, ensure all calculations work with a returned WEI
+- Since we made collateral withdraw optional, we now need an additional function that allows users to withdraw the max amount (or up to the max amount) of collateral
+- When calling the short() function, we need to do token validation via Aave's getReservesList() and Uniswap's getPool()
 
 
-Remix Testing:
-- We can deploy THE library on test net, get it's address, and then talk to it in another deployed contract.
-        -> Do we need to seperately deploy it? And if so, how do instantiate it... Do libraries have interfaces? Or is there some other way... 
-
-- Test repayOutstandingDebt() process (builiding upon the Aave code we already have)
-- Building on the same Aave test, test the calculate gains and withdraw collateral INSIDE of a library
 
 
 

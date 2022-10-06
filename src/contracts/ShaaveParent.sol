@@ -91,17 +91,17 @@ contract ShaaveParent {
         address _collateralTokenAddress,
         address _shortTokenAddress,
         uint _shortTokenAmount
-    ) public pure returns (uint collateralTokenAmount) {
-        uint priceOfShortTokenInBase = _shortTokenAddress.pricedIn(baseTokenAddress);                 // Wei
+    ) public view returns (uint collateralTokenAmount) {
+        uint priceOfShortTokenInBase = _shortTokenAddress.pricedIn(baseTokenAddress);                   // Wei
         uint amountShortTokenBase = (_shortTokenAmount * priceOfShortTokenInBase).dividedBy(1e18, 0);   // Wei
-        collateralTokenAmount = (amountShortTokenBase.dividedBy(70, 0)) * 100;                         // Wei
+        collateralTokenAmount = (amountShortTokenBase.dividedBy(70, 0)) * 100;                          // Wei
     }
 
     /** 
     * @dev This function returns a calling user's delegated contract address, if they have one.
     * @return userChildContract The user's delegated contract address.
     **/
-    function returnChildContractBySender() public returns (address userChildContract) {
+    function returnChildContractBySender() public view returns (address userChildContract) {
         userChildContract = userContracts[msg.sender];
         require(userChildContract != address(0), "User doesn't have a shAave account.");
     }
@@ -111,7 +111,7 @@ contract ShaaveParent {
     * @param _userAddress a shAave user's address
     * @return userChildContract The user's delegated contract address.
     **/
-    function returnUserContractByAddress(address _userAddress) public adminOnly returns (address userChildContract) {
+    function returnUserContractByAddress(address _userAddress) public view adminOnly returns (address userChildContract) {
         userChildContract = userContracts[_userAddress];
         require(userChildContract != address(0), "User doesn't have a shAave account.");
     }
@@ -120,7 +120,7 @@ contract ShaaveParent {
     * @dev This adminOnly function returns a an array of all users' associated child contracts.
     * @return userChildContract The user's delegated contract address.
     **/
-    function retrieveChildContracts() public adminOnly returns (address[] memory) {
+    function retrieveChildContracts() public view adminOnly returns (address[] memory) {
         return childContracts;
     }
 

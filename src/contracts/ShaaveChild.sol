@@ -175,7 +175,7 @@ contract ShaaveChild is Ownable {
     * @param _shortTokenReductionAmount The amount of the token, in WEI, that this function is attempting to obtain from Uniswap.
     * @return amountIn the amountIn to supply to uniswap when swapping to short tokens.
     **/
-    function getAmountIn(uint _shortTokenReductionAmount, address _shortTokenAddress, uint _backingBaseAmount) private returns (uint amountIn) {
+    function getAmountIn(uint _shortTokenReductionAmount, address _shortTokenAddress, uint _backingBaseAmount) private view returns (uint amountIn) {
         
         uint priceOfShortTokenInBase = _shortTokenAddress.pricedIn(baseTokenAddress);     // Wei
 
@@ -296,6 +296,7 @@ contract ShaaveChild is Ownable {
             (uint amountIn, uint amountOut) = swapExactInput(baseTokenAddress, _shortTokenAddress, _paymentAmount);
 
             // iii. Repay Aave loan with the amount of short tokens received from Uniswap.
+            IERC20(_shortTokenAddress).approve(aavePoolAddress, amountOut);
             IPool(aavePoolAddress).repay(_shortTokenAddress, amountOut, 2, address(this));
         }
 
@@ -314,17 +315,23 @@ contract ShaaveChild is Ownable {
     /** 
     * @dev  This function (for internal and external use) returns the this contract's total debt for a given short token.
     * @param _shortTokenAddress The address of the token the user has shorted.
-    * @return outStandingDebt This contract's total debt for a given short token.
+    * @return outstandingDebt This contract's total debt for a given short token.
     **/
     function getOutstandingDebt(address _shortTokenAddress) public view adminOnly returns (uint outstandingDebt) {
         address variableDebtTokenAddress = IPool(aavePoolAddress).getReserveData(_shortTokenAddress).variableDebtTokenAddress;
         outstandingDebt = IERC20(variableDebtTokenAddress).balanceOf(address(this));
     }
 
+
+    /** 
+    * @dev  This function returns the this contract's total debt, in terms the base token (in Wei), for a given short token.
+    * @param _shortTokenAddress The address of the token the user has shorted.
+    * @return outstandingDebtBase This contract's total debt, in terms the base token (in Wei), for a given short token.
+    **/
     function getOutstandingDebtBase(address _shortTokenAddress) public view adminOnly returns (uint outstandingDebtBase) {
-        uint priceOfShortTokenInBase = _shortTokenAddress.pricedIn(baseTokenAddress);     // Wei
-        uint totalShortTokenDebt = getOutstandingDebt(_shortTokenAddress);
-        // TODO: finish writting this
+        uint priceOfShortTokenInBase = _shortTokenAddress.pricedIn(baseTokenAddress);               // Wei
+        uint totalShortTokenDebt = getOutstandingDebt(_shortTokenAddress);                          // Wei
+        outstandingDebtBase = (priceOfShortTokenInBase * totalShortTokenDebt).dividedBy(1e18, 0);   // Wei
     }
 
 
@@ -340,6 +347,27 @@ contract ShaaveChild is Ownable {
                 aggregatedPositionData[i] = position;
         }
         return aggregatedPositionData;
+    }
+
+
+    /** 
+    * @dev  This function returns a list of data related to the Aave account that this contract has.
+    **/
+    function getAaveAccountData() public view adminOnly returns (uint totalCollateralBase, uint totalDebtBase, uint availableBorrowBase, uint currentLiquidationThreshold, uint ltv, uint healthFactor, uint maxWithdrawalAmount) {
+        maxWithdrawalAmount = ReturnCapital.calculateCollateralWithdrawAmount(address(this));
+        (totalCollateralBase, totalDebtBase, availableBorrowBase, currentLiquidationThreshold, ltv, healthFactor) = IPool(aavePoolAddress).getUserAccountData(address(this));   // Must multiply by 1e10 to get Wei
+    }
+
+    /** 
+    * @dev  This function allows a user to withdraw collateral on their Aave account, up to an
+            amount that does not raise their debt-to-collateral ratio above 70%.
+    * @param _withdrawAmount The amount of collateral (in Wei) the user wants to withdraw.
+    **/
+    function withdrawCollateral(uint _withdrawAmount) public adminOnly {
+        uint maxWithdrawalAmount = ReturnCapital.calculateCollateralWithdrawAmount(address(this));
+        require(_withdrawAmount > 0 && _withdrawAmount <= maxWithdrawalAmount, "Withdraw amount exceeds maximum withdraw amount.");
+
+        IPool(aavePoolAddress).withdraw(baseTokenAddress, _withdrawAmount, user);
     }
 
     modifier adminOnly() {
