@@ -17,7 +17,7 @@ interface IShaaveChild {
         bool _withdrawCollateral
     ) external;
 
-    function repayOutstandingDebt(
+    function payOutstandingDebt(
         address _shortTokenAddress,
         address _paymentToken,
         uint _paymentAmount,

@@ -275,8 +275,8 @@ contract ShaaveChild is Ownable {
     * @param _paymentAmount The amount that's sent to repay the outstanding debt.
     * @param _withdrawCollateral A boolean to withdraw collateral or not.
     **/
-    function repayOutstandingDebt(address _shortTokenAddress, address _paymentToken, uint _paymentAmount, bool _withdrawCollateral) public adminOnly returns (bool) {
-        require(userPositions[_shortTokenAddress].backingBaseAmount == 0, "Position is still open. Use reducePosition() first. If any debt remains after, then use repayOutstandingDebt()");
+    function payOutstandingDebt(address _shortTokenAddress, address _paymentToken, uint _paymentAmount, bool _withdrawCollateral) public adminOnly returns (bool) {
+        require(userPositions[_shortTokenAddress].backingBaseAmount == 0, "Position is still open. Use reducePosition() first. If any debt remains after, then use payOutstandingDebt()");
         require(_paymentToken == _shortTokenAddress || _paymentToken == baseTokenAddress, "Payment must be in the form of either the short token or the collateral token.");
         
         // 1. Repay debt.
