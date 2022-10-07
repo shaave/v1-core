@@ -4,7 +4,6 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 // External Packages
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@aave-protocol/interfaces/IPool.sol";
 import "@aave-protocol/interfaces/IAaveOracle.sol";
 
