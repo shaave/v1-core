@@ -4,7 +4,6 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 // External Packages
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@aave-protocol/interfaces/IPool.sol";
 import "@aave-protocol/interfaces/IAaveOracle.sol";
 
@@ -16,6 +15,8 @@ import "./libraries/ShaavePricing.sol";
 
 /// @title shAave parent contract, which orchestrates children contracts
 contract ShaaveParent {
+    using ShaavePricing for address;
+    using Math for uint;
 
     // -- ShaaveParent Variables --
     address private admin;
@@ -28,7 +29,7 @@ contract ShaaveParent {
     address public aaveOracleAddress = 0x5bed0810073cc9f0DacF73C648202249E87eF6cB;         // Goerli Aave Oracle Address
     
     // -- Events --
-    event CollateralSuccess(address user, address shortTokenAddress, uint amount);
+    event CollateralSuccess(address user, address baseTokenAddress, uint amount);
     
     constructor() {
         admin = payable(msg.sender);
@@ -42,7 +43,7 @@ contract ShaaveParent {
     function addShortPosition(
         address _shortTokenAddress,
         uint _collateralTokenAmount
-    ) public returns (bool success) {
+    ) public returns (bool) {
         require(_collateralTokenAmount > 0, "_collateralTokenAmount must be a positive value.");
         require(_shortTokenAddress != address(0), "_shortTokenAddress must be a nonzero address.");
 
@@ -60,6 +61,8 @@ contract ShaaveParent {
 
         // 3. Finish shorting process on user's child contract
         IShaaveChild(childContractAddress).short(_shortTokenAddress, _collateralTokenAmount, msg.sender);
+
+        return true;
     }
 
 
@@ -77,18 +80,18 @@ contract ShaaveParent {
 
         // 3. Supply collateral to Aave, on the user's child contract's behalf
         IPool(aavePoolAddress).supply(baseTokenAddress, _collateralTokenAmount, _userChildContract, 0);
-        emit CollateralSuccess(msg.sender, _collateralTokenAmount);
+        emit CollateralSuccess(msg.sender, baseTokenAddress, _collateralTokenAmount);
+        
+        return true;
     }
 
     /** 
     * @dev This function returns the amount of a collateral necessary for a desired amount of a short position.
-    * @param _collateralTokenAddress The address of the token the user wants to post as collateral.
     * @param _shortTokenAddress The address of the token the user wants to short.
     * @param _shortTokenAmount The amount of the token the user wants to short (in WEI).
     * @return collateralTokenAmount The amount of the collateral token the user will need to supply, in order to short the inputted amount of the short token.
     **/
     function getNeededCollateralAmount(
-        address _collateralTokenAddress,
         address _shortTokenAddress,
         uint _shortTokenAmount
     ) public view returns (uint collateralTokenAmount) {

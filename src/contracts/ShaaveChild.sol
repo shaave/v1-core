@@ -10,7 +10,6 @@ import "./libraries/AddressArray.sol";
 
 // External Package Imports
 import "@aave-protocol/interfaces/IPool.sol";
-import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@uniswap-v3-periphery/interfaces/ISwapRouter.sol";
 import "@uniswap-v3-periphery/libraries/TransferHelper.sol";
@@ -104,6 +103,8 @@ contract ShaaveChild is Ownable {
         userPositions[_shortTokenAddress].baseAmountsReceived.push(amountOut);
         userPositions[_shortTokenAddress].collateralAmounts.push(_collateralTokenAmount);
         userPositions[_shortTokenAddress].backingBaseAmount += amountOut;
+
+        return true;
     }
 
 
@@ -168,6 +169,8 @@ contract ShaaveChild is Ownable {
             IERC20(baseTokenAddress).transfer(msg.sender, gains.dividedBy(1e12, 0));
             userPositions[_shortTokenAddress].backingBaseAmount -= gains;
         }
+        
+        return true;
     }
 
     /** 
@@ -293,7 +296,8 @@ contract ShaaveChild is Ownable {
             IERC20(baseTokenAddress).transferFrom(msg.sender, address(this), _paymentAmount);
 
             // ii. Swap base tokens for short tokens, that will be used to repay the Aave loan.
-            (uint amountIn, uint amountOut) = swapExactInput(baseTokenAddress, _shortTokenAddress, _paymentAmount);
+            ( , uint amountOut) = swapExactInput(baseTokenAddress, _shortTokenAddress, _paymentAmount);
+
 
             // iii. Repay Aave loan with the amount of short tokens received from Uniswap.
             IERC20(_shortTokenAddress).approve(aavePoolAddress, amountOut);
@@ -310,6 +314,8 @@ contract ShaaveChild is Ownable {
         if (getOutstandingDebt(_shortTokenAddress) == 0) {
             userPositions[_shortTokenAddress].hasDebt = false;
         }
+
+        return true;
     }
 
     /** 
