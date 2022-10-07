@@ -4,7 +4,7 @@ pragma solidity ^0.8.10;
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
 import "@aave-protocol/interfaces/IAaveOracle.sol";
-import "../src/contracts/libraries/ShaavePricing.sol";
+import "../../src/contracts/libraries/ShaavePricing.sol";
 
 
 contract TestShaavePricing is Test {
