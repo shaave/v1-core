@@ -2,39 +2,36 @@
 pragma solidity ^0.8.10;
 
 import "forge-std/Test.sol";
-import "forge-std/console.sol";
-import "@aave-protocol/interfaces/IAaveOracle.sol";
 import "../../src/contracts/libraries/ShaavePricing.sol";
 
-
-contract TestShaavePricing is Test {
+contract Test_ShaavePricing is Test {
+    using ShaavePricing for address;
 
     function test_pricedIn() public {
 
-        // Test Variables
+        // Arrange
         address testAaveOracleAddress = 0x5bed0810073cc9f0DacF73C648202249E87eF6cB; // Goerli Aave Pricing Oracle Address
         address shortTokenAddress     = 0xDF1742fE5b0bFc12331D8EAec6b478DfDbD31464; // Goerli Aaave DAI
         address baseTokenAddress      = 0xA2025B15a1757311bfD68cb14eaeFCc237AF5b43; // Goerli Aaave USDC
-        uint    price;                                                              // price in wei
+        uint    inputTokenPriceUSD    = 10e8;                                       // input token in base currency
+        uint    baseTokenPriceUSD     = 1e8;                                        // base token in base currency
+        uint    assetPriceInBase;                                                   // price of shortToken in baseToken expressed in Wei
 
-        // Arrange
         vm.mockCall(
             testAaveOracleAddress,
             abi.encodeWithSelector(IAaveOracle(testAaveOracleAddress).getAssetPrice.selector, shortTokenAddress),
-            abi.encode(10e8)
+            abi.encode(inputTokenPriceUSD)
         );
         vm.mockCall(
             testAaveOracleAddress,
             abi.encodeWithSelector(IAaveOracle(testAaveOracleAddress).getAssetPrice.selector, baseTokenAddress),
-            abi.encode(1e8)
+            abi.encode(baseTokenPriceUSD)
         );
 
         // Act
-        price = ShaavePricing.pricedIn(shortTokenAddress, baseTokenAddress);
-        
+        assetPriceInBase = shortTokenAddress.pricedIn(baseTokenAddress);
+
         // Assert
-        assertEq(price, 10e18);
+        assertEq(assetPriceInBase, 10e18);
     }
-
-
 }

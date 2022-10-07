@@ -30,7 +30,7 @@ library ReturnCapital {
     * @param _baseTokenAddress The address of the base token.
     * @param _totalShortTokenDebt The contract's total debt (in Wei) for a specific short token.
     * @param _percentageReduction The percentage reduction of the user's short position; 100% constitutes closing out the position.
-    * @param _positionbackingBaseAmount The amount of base asset (in Wei) this contract has allocated for a specifc asset short position.
+    * @param _positionbackingBaseAmount The amount of base asset (in Wei) this contract has allocated for a specific asset short position.
     * @return gains The gains the trade at hand yielded; if nonzero, this value (in Wei) will be paid out to the user.
     * @notice debtValueBase This total debt's value in the base asset (in Wei).
     **/
@@ -43,7 +43,6 @@ library ReturnCapital {
     ) internal view returns (uint gains) {
         uint priceOfShortTokenInBase = _shortTokenAddress.pricedIn(_baseTokenAddress);                          // Wei
         uint debtValueBase = (priceOfShortTokenInBase * _totalShortTokenDebt).dividedBy(1e18, 0);               // Wei
-
         if (_positionbackingBaseAmount > debtValueBase) {
             gains = (_percentageReduction * (_positionbackingBaseAmount - debtValueBase)).dividedBy(100, 0);    // Wei
         } else {
@@ -68,19 +67,20 @@ library ReturnCapital {
     *                       debt (smaller than 1e10 Wei). 
     **/
     function calculateCollateralWithdrawAmount(address _childAddress) internal view returns (uint withdrawalAmount) {
+        uint ShaaveDebtToCollateral = 70;
+        uint maxUncapturedDebt      = 9999999999;
+        uint uncapturedCollateral   = (maxUncapturedDebt.dividedBy(ShaaveDebtToCollateral,0) * 100);                         // Wei
+        uint maxWithdrawal;
 
         (uint totalCollateralBase, uint totalDebtBase, , , , ) = IPool(aavePoolAddress).getUserAccountData(_childAddress);   // Must multiply by 1e10 to get Wei
 
-        uint maxUncapturedDebt = 9999999999;
-
-        uint uncapturedCollateral = (maxUncapturedDebt.dividedBy(70,0) * 100);                                                  // Wei
-        uint maxWithdrawal = ((totalCollateralBase - (totalDebtBase.dividedBy(70, 0) * 100)) * 1e10) - uncapturedCollateral;    // Wei
-
-
-        if (maxWithdrawal > 0) {
+        if (totalCollateralBase > (uncapturedCollateral.dividedBy(1e10, 0) + (totalDebtBase.dividedBy(70, 0) * 100))){
+            maxWithdrawal    = ((totalCollateralBase - (totalDebtBase.dividedBy(ShaaveDebtToCollateral, 0) * 100)) * 1e10) - uncapturedCollateral;    // Wei
             withdrawalAmount = maxWithdrawal;
         } else {
             withdrawalAmount = 0;
         }
+
+        return withdrawalAmount;
     }   
 }

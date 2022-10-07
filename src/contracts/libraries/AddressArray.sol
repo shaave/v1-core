@@ -3,7 +3,6 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 
-
 /**
  * @title Array library
  * @author shAave
