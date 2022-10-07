@@ -24,7 +24,4 @@ library ShaavePricing {
         uint baseTokenPriceUSD = IAaveOracle(aaveOracleAddress).getAssetPrice(_baseTokenAddress);
         assetPriceInBase = inputTokenPriceUSD.dividedBy(baseTokenPriceUSD, 18);       // Wei
     }
-    
 }
-
-// TODO: Update library function calls everywhere
