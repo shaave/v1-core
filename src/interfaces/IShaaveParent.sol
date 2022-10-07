@@ -5,7 +5,20 @@ pragma solidity ^0.8.10;
 
 interface IShaaveParent {
 
-    function hi() external;
+    function addShortPosition(
+        address _shortTokenAddress,
+        uint _collateralTokenAmount
+    ) external;
 
-    function yo() external;
+    function getNeededCollateralAmount(
+        address _collateralTokenAddress,
+        address _shortTokenAddress,
+        uint _shortTokenAmount
+    ) external;
+
+    function returnChildContractBySender() external;
+
+    function returnUserContractByAddress(address _userAddress) external;
+
+    function retrieveChildContracts() external;
 }
