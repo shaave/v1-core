@@ -104,6 +104,8 @@ contract ShaaveChild is Ownable {
         userPositions[_shortTokenAddress].baseAmountsReceived.push(amountOut);
         userPositions[_shortTokenAddress].collateralAmounts.push(_collateralTokenAmount);
         userPositions[_shortTokenAddress].backingBaseAmount += amountOut;
+
+        return true;
     }
 
 
@@ -168,6 +170,8 @@ contract ShaaveChild is Ownable {
             IERC20(baseTokenAddress).transfer(msg.sender, gains.dividedBy(1e12, 0));
             userPositions[_shortTokenAddress].backingBaseAmount -= gains;
         }
+        
+        return true;
     }
 
     /** 
@@ -310,6 +314,8 @@ contract ShaaveChild is Ownable {
         if (getOutstandingDebt(_shortTokenAddress) == 0) {
             userPositions[_shortTokenAddress].hasDebt = false;
         }
+
+        return true;
     }
 
     /** 
