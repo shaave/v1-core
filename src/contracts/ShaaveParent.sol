@@ -6,6 +6,7 @@ pragma abicoder v2;
 // External Packages
 import "@aave-protocol/interfaces/IPool.sol";
 import "@aave-protocol/interfaces/IAaveOracle.sol";
+import "forge-std/console.sol";
 
 // Local
 import "../interfaces/IShaaveChild.sol";
@@ -20,7 +21,7 @@ contract ShaaveParent {
 
     // -- ShaaveParent Variables --
     address private admin;
-    mapping(address => address) private userContracts;
+    mapping(address => address) public userContracts;
     address[] private childContracts;
 
     // -- Aave Variables --
@@ -47,21 +48,23 @@ contract ShaaveParent {
         require(_collateralTokenAmount > 0, "_collateralTokenAmount must be a positive value.");
         require(_shortTokenAddress != address(0), "_shortTokenAddress must be a nonzero address.");
 
+        console.log("Entered function.");
         // 1. Create new user's child contract, if the user does not already have one
         address childContractAddress = userContracts[msg.sender];
 
         if (childContractAddress == address(0)) {
             childContractAddress = address(new ShaaveChild(msg.sender));
+            console.log("New child contract created.");
             userContracts[msg.sender] = childContractAddress;
             childContracts.push(childContractAddress);
         }
 
         // 2. Supply collateral on behalf of user's child contract        
         supplyOnBehalfOfChild(childContractAddress, _collateralTokenAmount);
-
+        console.log("Supplied on behalf of child.");
         // 3. Finish shorting process on user's child contract
         IShaaveChild(childContractAddress).short(_shortTokenAddress, _collateralTokenAmount, msg.sender);
-
+        console.log("Exit function.");
         return true;
     }
 
@@ -72,16 +75,18 @@ contract ShaaveParent {
     * @param _collateralTokenAmount The amount of collateral that will be used for adding to a short position.
     **/
     function supplyOnBehalfOfChild(address _userChildContract, uint _collateralTokenAmount) private returns (bool) {
+        console.log("Entered supplyOnBehalfOfChild().");
         // 1. Transfer the user's collateral amount to this contract, so it can supply collateral to Aave
         IERC20(baseTokenAddress).transferFrom(msg.sender, address(this), _collateralTokenAmount);
-
+        console.log("transferFrom completed.");
         // 2. Approve Aave to handle collateral on this contract's behalf
         IERC20(baseTokenAddress).approve(aavePoolAddress, _collateralTokenAmount);
-
+        console.log("Approve completed.");
         // 3. Supply collateral to Aave, on the user's child contract's behalf
         IPool(aavePoolAddress).supply(baseTokenAddress, _collateralTokenAmount, _userChildContract, 0);
+        console.log("Supply completed.");
         emit CollateralSuccess(msg.sender, baseTokenAddress, _collateralTokenAmount);
-        
+        console.log("Exited supplyOnBehalfOfChild().");
         return true;
     }
 
@@ -132,4 +137,11 @@ contract ShaaveParent {
         _;
     }
 
+    // TODO: delete the following two functions
+    function function3() public returns (bool) {
+        console.log("Enter Function3()");
+        IPool(aavePoolAddress).supply(baseTokenAddress, 10e6, baseTokenAddress, 0);
+        console.log("Exit Function3()");
+        return true;
+    }
 }

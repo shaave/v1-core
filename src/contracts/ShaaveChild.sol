@@ -349,8 +349,8 @@ contract ShaaveChild is Ownable {
 
         PositionData[] memory aggregatedPositionData = new PositionData[](openShortPositions.length);
         for (uint i = 0; i < openShortPositions.length; i++) {
-                PositionData storage position = userPositions[openShortPositions[i]];
-                aggregatedPositionData[i] = position;
+            PositionData storage position = userPositions[openShortPositions[i]];
+            aggregatedPositionData[i] = position;
         }
         return aggregatedPositionData;
     }
