@@ -9,13 +9,13 @@ import "../../src/contracts/libraries/ShaavePricing.sol";
 
 contract TestShaavePricing is Test {
 
-    function testAaveOracle() public {
+    function test_pricedIn() public {
 
         // Test Variables
         address testAaveOracleAddress = 0x5bed0810073cc9f0DacF73C648202249E87eF6cB; // Goerli Aave Pricing Oracle Address
         address shortTokenAddress     = 0xDF1742fE5b0bFc12331D8EAec6b478DfDbD31464; // Goerli Aaave DAI
         address baseTokenAddress      = 0xA2025B15a1757311bfD68cb14eaeFCc237AF5b43; // Goerli Aaave USDC
-        uint price;                                                                 // price in wei
+        uint    price;                                                              // price in wei
 
         // Arrange
         vm.mockCall(
@@ -35,4 +35,6 @@ contract TestShaavePricing is Test {
         // Assert
         assertEq(price, 10e18);
     }
+
+
 }
