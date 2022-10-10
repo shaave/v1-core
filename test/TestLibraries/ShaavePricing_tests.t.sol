@@ -2,10 +2,12 @@
 pragma solidity ^0.8.10;
 
 import "forge-std/Test.sol";
+import "../../src/contracts/libraries/Math.sol";
 import "../../src/contracts/libraries/ShaavePricing.sol";
 
 contract Test_ShaavePricing is Test {
     using ShaavePricing for address;
+    using Math for uint;
 
     function test_pricedIn() public {
 
@@ -32,6 +34,6 @@ contract Test_ShaavePricing is Test {
         assetPriceInBase = shortTokenAddress.pricedIn(baseTokenAddress);
 
         // Assert
-        assertEq(assetPriceInBase, 10e18);
+        assertEq(assetPriceInBase, inputTokenPriceUSD.dividedBy(baseTokenPriceUSD, 0) * 1 ether);
     }
 }
