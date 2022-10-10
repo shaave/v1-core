@@ -9,6 +9,12 @@ contract Test_AddressArray is Test {
     address[] private testArray;
     address[] private expectedArray;
 
+    /*******************************************************************************
+    **
+    **  removeAddress tests
+    **
+    *******************************************************************************/
+
     function test_removeAddress_addressFound() public {
 
         // Arrange
@@ -49,6 +55,12 @@ contract Test_AddressArray is Test {
         // Assert
         assertEq(testArray, expectedArray);
     }
+
+    /*******************************************************************************
+    **
+    **  includes tests
+    **
+    *******************************************************************************/
 
     function test_includes_addressIncluded() public {
 
