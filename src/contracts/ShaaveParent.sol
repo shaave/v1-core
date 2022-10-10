@@ -100,6 +100,9 @@ contract ShaaveParent {
         address _shortTokenAddress,
         uint _shortTokenAmount
     ) public view returns (uint collateralTokenAmount) {
+        require(_shortTokenAddress != address(0), "_shortTokenAddress must be a nonzero address.");
+        require(_shortTokenAmount > 0, "_shortTokenAmount must be greater than zero.");
+
         uint priceOfShortTokenInBase = _shortTokenAddress.pricedIn(baseTokenAddress);                   // Wei
         uint amountShortTokenBase = (_shortTokenAmount * priceOfShortTokenInBase).dividedBy(1e18, 0);   // Wei
         collateralTokenAmount = (amountShortTokenBase.dividedBy(70, 0)) * 100;                          // Wei
@@ -135,13 +138,5 @@ contract ShaaveParent {
     modifier adminOnly() {
         require(msg.sender == admin);
         _;
-    }
-
-    // TODO: delete the following two functions
-    function function3() public returns (bool) {
-        console.log("Enter Function3()");
-        IPool(aavePoolAddress).supply(baseTokenAddress, 10e6, baseTokenAddress, 0);
-        console.log("Exit Function3()");
-        return true;
     }
 }
