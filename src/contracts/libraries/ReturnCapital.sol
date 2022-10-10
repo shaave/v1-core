@@ -74,7 +74,7 @@ library ReturnCapital {
 
         (uint totalCollateralBase, uint totalDebtBase, , , , ) = IPool(aavePoolAddress).getUserAccountData(_childAddress);   // Must multiply by 1e10 to get Wei
 
-        if (totalCollateralBase > (uncapturedCollateral.dividedBy(1e10, 0) + (totalDebtBase.dividedBy(70, 0) * 100))){
+        if (totalCollateralBase > (uncapturedCollateral.dividedBy(1e10, 0) + (totalDebtBase.dividedBy(ShaaveDebtToCollateral, 0) * 100))){
             maxWithdrawal    = ((totalCollateralBase - (totalDebtBase.dividedBy(ShaaveDebtToCollateral, 0) * 100)) * 1e10) - uncapturedCollateral;    // Wei
             withdrawalAmount = maxWithdrawal;
         } else {
