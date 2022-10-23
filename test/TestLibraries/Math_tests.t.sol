@@ -7,6 +7,12 @@ import "../../src/contracts/libraries/Math.sol";
 contract Test_Math is Test {
     using Math for uint;
 
+    /*******************************************************************************
+    **
+    **  dividedBy tests
+    **
+    *******************************************************************************/
+
     function test_dividedBy() public {
 
         // Arrange

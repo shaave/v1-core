@@ -8,6 +8,12 @@ import "../../src/contracts/libraries/Math.sol";
 contract Test_ReturnCapital is Test {
     using Math for uint;
 
+    /*******************************************************************************
+    **
+    **  calculatePositionGains tests
+    **
+    *******************************************************************************/
+
     function test_calculatePositionGains_noGains() public {
 
         // Arrange
@@ -70,27 +76,11 @@ contract Test_ReturnCapital is Test {
         assertEq(gains, 5e18);
     }
 
-    function test_calculateCollateralWithdrawAmount() public {
-
-        // Arrange
-        address aavePoolAddress     = 0x368EedF3f56ad10b9bC57eed4Dac65B26Bb667f6;   // Goerli Aave Pool Address
-        address _childAddress       = 0xa4F9f089677Bf68c8F38Fe9bffEF2be52EA679bF;   // https://vanity-eth.tk/ random-generated
-        uint    withdrawalAmount;
-        uint    totalCollateralBase = 10e8;
-        uint    totalDebtBase       = 7e8;
-
-        vm.mockCall(
-            aavePoolAddress,
-            abi.encodeWithSelector(IPool(aavePoolAddress).getUserAccountData.selector, _childAddress),
-            abi.encode(totalCollateralBase, totalDebtBase, 0, 0, 0, 0)
-        );
-
-        // Act
-        withdrawalAmount = ReturnCapital.calculateCollateralWithdrawAmount(_childAddress);
-        
-        // Assert
-        assertEq(withdrawalAmount, 0);
-    }
+    /*******************************************************************************
+    **
+    **  calculateCollateralWithdrawAmount tests
+    **
+    *******************************************************************************/
 
     function test_calculateCollateralWithdrawAmount_zeroWithdrawal() public {
 
