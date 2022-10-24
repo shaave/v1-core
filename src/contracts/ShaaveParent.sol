@@ -26,14 +26,16 @@ contract ShaaveParent {
 
     // -- Aave Variables --
     address public baseTokenAddress = 0xA2025B15a1757311bfD68cb14eaeFCc237AF5b43;    // Goerli Aave USDC
-    address public aavePoolAddress = 0x368EedF3f56ad10b9bC57eed4Dac65B26Bb667f6;           // Goerli Aave Pool Address
-    address public aaveOracleAddress = 0x5bed0810073cc9f0DacF73C648202249E87eF6cB;         // Goerli Aave Oracle Address
+    address public aavePoolAddress;
+    address public aaveOracleAddress;        
     
     // -- Events --
     event CollateralSuccess(address user, address baseTokenAddress, uint amount);
     
-    constructor() {
+    constructor(address _aavePoolAddress, address _aaveOracleAddress) {
         admin = payable(msg.sender);
+        aavePoolAddress = _aavePoolAddress;     //  0x368EedF3f56ad10b9bC57eed4Dac65B26Bb667f6 Goerli
+        aaveOracleAddress = _aaveOracleAddress; //  0x5bed0810073cc9f0DacF73C648202249E87eF6cB Goerli
     }
 
     /** 
@@ -45,15 +47,12 @@ contract ShaaveParent {
         address _shortTokenAddress,
         uint _collateralTokenAmount
     ) public returns (bool) {
-        require(_collateralTokenAmount > 0, "_collateralTokenAmount must be a positive value.");
-        require(_shortTokenAddress != address(0), "_shortTokenAddress must be a nonzero address.");
-
         console.log("Entered function.");
         // 1. Create new user's child contract, if the user does not already have one
         address childContractAddress = userContracts[msg.sender];
 
         if (childContractAddress == address(0)) {
-            childContractAddress = address(new ShaaveChild(msg.sender));
+            childContractAddress = address(new ShaaveChild(msg.sender, aavePoolAddress, aaveOracleAddress));
             console.log("New child contract created.");
             userContracts[msg.sender] = childContractAddress;
             childContracts.push(childContractAddress);
@@ -100,38 +99,16 @@ contract ShaaveParent {
         address _shortTokenAddress,
         uint _shortTokenAmount
     ) public view returns (uint collateralTokenAmount) {
-        require(_shortTokenAddress != address(0), "_shortTokenAddress must be a nonzero address.");
-        require(_shortTokenAmount > 0, "_shortTokenAmount must be greater than zero.");
-
         uint priceOfShortTokenInBase = _shortTokenAddress.pricedIn(baseTokenAddress);                   // Wei
         uint amountShortTokenBase = (_shortTokenAmount * priceOfShortTokenInBase).dividedBy(1e18, 0);   // Wei
         collateralTokenAmount = (amountShortTokenBase.dividedBy(70, 0)) * 100;                          // Wei
     }
 
     /** 
-    * @dev This function returns a calling user's delegated contract address, if they have one.
-    * @return userChildContract The user's delegated contract address.
-    **/
-    function returnChildContractBySender() public view returns (address userChildContract) {
-        userChildContract = userContracts[msg.sender];
-        require(userChildContract != address(0), "User doesn't have a shAave account.");
-    }
-
-    /** 
-    * @dev This adminOnly function returns a user's delegated contract address, if they have one.
-    * @param _userAddress a shAave user's address
-    * @return userChildContract The user's delegated contract address.
-    **/
-    function returnUserContractByAddress(address _userAddress) public view adminOnly returns (address userChildContract) {
-        userChildContract = userContracts[_userAddress];
-        require(userChildContract != address(0), "User doesn't have a shAave account.");
-    }
-
-    /** 
     * @dev This adminOnly function returns a an array of all users' associated child contracts.
     * @return userChildContract The user's delegated contract address.
     **/
-    function retrieveChildContracts() public view adminOnly returns (address[] memory) {
+    function retrieveChildContracts() external view adminOnly returns (address[] memory) {
         return childContracts;
     }
 

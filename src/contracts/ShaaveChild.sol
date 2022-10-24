@@ -43,12 +43,12 @@ contract ShaaveChild is Ownable {
 
     // -- Aave Variables --
     address public baseTokenAddress = 0xA2025B15a1757311bfD68cb14eaeFCc237AF5b43;    // Goerli Aave USDC
-    address public aavePoolAddress = 0x368EedF3f56ad10b9bC57eed4Dac65B26Bb667f6;     // Goerli Aave Pool Address
-    address public aaveOracleAddress = 0x5bed0810073cc9f0DacF73C648202249E87eF6cB;   // Goerli Aave Oracle Address
+    address public aavePoolAddress;
+    address public aaveOracleAddress;
 
     // -- Uniswap Variables --
-    uint24 constant poolFee = 3000;
-    ISwapRouter public immutable swapRouter = ISwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);  // Goerli Uniswap SwapRouter Address
+    uint24 constant poolFee;
+    ISwapRouter public immutable swapRouter;  
 
     // Events
     event BorrowSuccess(address user, address borrowTokenAddress, uint amount);
@@ -57,8 +57,12 @@ contract ShaaveChild is Ownable {
     event ErrorString(string errorMessage, string executionInsight);
     event LowLevelError(bytes errorData, string executionInsight);
 
-    constructor(address _user) {
+    constructor(address _user, address _aavePoolAddress, address _aaveOracleAddress) {
         user = _user;
+        aavePoolAddress = _aavePoolAddress;
+        aaveOracleAddress = _aaveOracleAddress;
+        swapRouter = ISwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564); // Goerli
+        poolFee = 3000;
     }
 
     /** 
@@ -279,8 +283,8 @@ contract ShaaveChild is Ownable {
     * @param _withdrawCollateral A boolean to withdraw collateral or not.
     **/
     function payOutstandingDebt(address _shortTokenAddress, address _paymentToken, uint _paymentAmount, bool _withdrawCollateral) public adminOnly returns (bool) {
-        require(userPositions[_shortTokenAddress].backingBaseAmount == 0, "Position is still open. Use reducePosition() first. If any debt remains after, then use payOutstandingDebt()");
-        require(_paymentToken == _shortTokenAddress || _paymentToken == baseTokenAddress, "Payment must be in the form of either the short token or the collateral token.");
+        require(userPositions[_shortTokenAddress].backingBaseAmount == 0, "Position is still open.");
+        require(_paymentToken == _shortTokenAddress || _paymentToken == baseTokenAddress, "Pay with short or base token.");
         
         // 1. Repay debt.
         if (_paymentToken == _shortTokenAddress) {
@@ -330,7 +334,7 @@ contract ShaaveChild is Ownable {
 
 
     /** 
-    * @dev  This function returns the this contract's total debt, in terms the base token (in Wei), for a given short token.
+    * @dev  This function returns the this contract's total debt, in terms of the base token (in Wei), for a given short token.
     * @param _shortTokenAddress The address of the token the user has shorted.
     * @return outstandingDebtBase This contract's total debt, in terms the base token (in Wei), for a given short token.
     **/
@@ -346,10 +350,10 @@ contract ShaaveChild is Ownable {
     * @return aggregatedPositionData A list of user's positions and their associated accounting data.
     **/
     function getAccountingData() external view adminOnly returns (PositionData[] memory) {
-
-        PositionData[] memory aggregatedPositionData = new PositionData[](openShortPositions.length);
-        for (uint i = 0; i < openShortPositions.length; i++) {
-            PositionData storage position = userPositions[openShortPositions[i]];
+        address[] memory _openShortPositions = openShortPositions; // Optimizes gas
+        PositionData[] memory aggregatedPositionData = new PositionData[](_openShortPositions.length);
+        for (uint i = 0; i < _openShortPositions.length; i++) {
+            PositionData storage position = userPositions[_openShortPositions[i]];
             aggregatedPositionData[i] = position;
         }
         return aggregatedPositionData;
@@ -371,7 +375,7 @@ contract ShaaveChild is Ownable {
     **/
     function withdrawCollateral(uint _withdrawAmount) public adminOnly {
         uint maxWithdrawalAmount = ReturnCapital.calculateCollateralWithdrawAmount(address(this));
-        require(_withdrawAmount > 0 && _withdrawAmount <= maxWithdrawalAmount, "Withdraw amount exceeds maximum withdraw amount.");
+        require(_withdrawAmount <= maxWithdrawalAmount, "Exceeds max withdraw amount.");
 
         IPool(aavePoolAddress).withdraw(baseTokenAddress, _withdrawAmount, user);
     }

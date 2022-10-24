@@ -16,8 +16,6 @@ interface IShaaveParent {
         uint _shortTokenAmount
     ) external;
 
-    function returnChildContractBySender() external;
-
     function returnUserContractByAddress(address _userAddress) external;
 
     function retrieveChildContracts() external;
