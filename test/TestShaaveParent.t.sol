@@ -19,18 +19,21 @@ contract TestShaaveParentData is Test {
     ShaaveParent shaaveParent;
     MockAavePool mockAavePool;
 
+    // Constants
+    address testAaveOracleAddress = 0x5bed0810073cc9f0DacF73C648202249E87eF6cB;
+    address testAavePoolAddress = 0x368EedF3f56ad10b9bC57eed4Dac65B26Bb667f6;
+
     // Test Events
     event CollateralSuccess(address user, address testBaseTokenAddress , uint amount);
 
     function setUp() public {
-        shaaveParent = new ShaaveParent();
+        shaaveParent = new ShaaveParent(testAavePoolAddress, testAaveOracleAddress);
         mockAavePool = new MockAavePool();
     }
 
     function test_getNeededCollateralAmount() public {
 
         // Test Variables
-        address testAaveOracleAddress = 0x5bed0810073cc9f0DacF73C648202249E87eF6cB; // Goerli Aave Pricing Oracle Address
         address testShortTokenAddress = 0xDF1742fE5b0bFc12331D8EAec6b478DfDbD31464; // Goerli Aaave DAI
         address testBaseTokenAddress  = 0xA2025B15a1757311bfD68cb14eaeFCc237AF5b43; // Goerli Aaave USDC
         uint    testShortTokenAmount  = 15e18;                                         // Amount of short token desired
@@ -59,13 +62,12 @@ contract TestShaaveParentData is Test {
 
     function test_getNeededCollateralAmountZeroAddress() public {
         // Act
-        vm.expectRevert("_shortTokenAddress must be a nonzero address.");
+        vm.expectRevert();
         shaaveParent.getNeededCollateralAmount(address(0), 15);
     }
 
-    function test_getNeededCollateralAmountInvalidAmount() public {
+    function testFail_getNeededCollateralAmountInvalidAmount() public view {
         // Act
-        vm.expectRevert("_shortTokenAmount must be greater than zero.");
         address testShortTokenAddress = 0xDF1742fE5b0bFc12331D8EAec6b478DfDbD31464; // Goerli Aaave DAI
         shaaveParent.getNeededCollateralAmount(testShortTokenAddress, 0);
     }

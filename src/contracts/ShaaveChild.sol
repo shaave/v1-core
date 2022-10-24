@@ -47,7 +47,7 @@ contract ShaaveChild is Ownable {
     address public aaveOracleAddress;
 
     // -- Uniswap Variables --
-    uint24 constant poolFee;
+    uint24 public immutable poolFee;
     ISwapRouter public immutable swapRouter;  
 
     // Events
@@ -230,7 +230,6 @@ contract ShaaveChild is Ownable {
     * @param _tokenOutAmount The amount of the token, in WEI, that this function is attempting to obtain from Uniswap
     * @param _tokenInAddress The address of the token that this function is attempting to spend for output tokens.
     * @param _amountInMaximum The maximum amount of input tokens this contract is willing to spend for output tokens.
-
     * @return amountIn The amount of tokens supplied to Uniswap for a desired token output amount
     * @return amountOut The amount of tokens received from Uniswap
     **/
