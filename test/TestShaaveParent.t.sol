@@ -22,6 +22,9 @@ contract TestShaaveParentData is Test {
     // Constants
     address testAaveOracleAddress = 0x5bed0810073cc9f0DacF73C648202249E87eF6cB;
     address testAavePoolAddress = 0x368EedF3f56ad10b9bC57eed4Dac65B26Bb667f6;
+    address testShortTokenAddress = 0xDF1742fE5b0bFc12331D8EAec6b478DfDbD31464;
+    address testBaseTokenAddress  = 0xA2025B15a1757311bfD68cb14eaeFCc237AF5b43; 
+    uint    testShortTokenAmount  = 15e18;                                      
 
     // Test Events
     event CollateralSuccess(address user, address testBaseTokenAddress , uint amount);
@@ -34,9 +37,6 @@ contract TestShaaveParentData is Test {
     function test_getNeededCollateralAmount() public {
 
         // Test Variables
-        address testShortTokenAddress = 0xDF1742fE5b0bFc12331D8EAec6b478DfDbD31464; // Goerli Aaave DAI
-        address testBaseTokenAddress  = 0xA2025B15a1757311bfD68cb14eaeFCc237AF5b43; // Goerli Aaave USDC
-        uint    testShortTokenAmount  = 15e18;                                         // Amount of short token desired
         uint    inputTokenPriceUSD    = 10e8;                                       // input token price in USD
         uint    baseTokenPriceUSD     = 1e8;                                        // base currency token price in USD
     
@@ -54,22 +54,15 @@ contract TestShaaveParentData is Test {
         );
 
         // Act
-        uint testCollateralAmount = shaaveParent.getNeededCollateralAmount(testShortTokenAddress, testShortTokenAmount);
+        uint testCollateralAmount = shaaveParent.getNeededCollateralAmount(testShortTokenAddress, testBaseTokenAddress, testShortTokenAmount);
 
         // Assertions
         assertEq(testCollateralAmount, 214285714285714285700);
     }
 
-    function test_getNeededCollateralAmountZeroAddress() public {
-        // Act
-        vm.expectRevert();
-        shaaveParent.getNeededCollateralAmount(address(0), 15);
-    }
-
     function testFail_getNeededCollateralAmountInvalidAmount() public view {
         // Act
-        address testShortTokenAddress = 0xDF1742fE5b0bFc12331D8EAec6b478DfDbD31464; // Goerli Aaave DAI
-        shaaveParent.getNeededCollateralAmount(testShortTokenAddress, 0);
+        shaaveParent.getNeededCollateralAmount(testShortTokenAddress, testBaseTokenAddress, 0);
     }
 
 }

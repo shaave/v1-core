@@ -3,6 +3,7 @@ pragma solidity ^0.8.10;
 
 import "forge-std/Test.sol";
 import "../src/contracts/ShaaveChild.sol";
+import "forge-std/console.sol";
 
 contract Test_ShaaveChild is Test {
     using ShaavePricing for address;
@@ -27,21 +28,7 @@ contract Test_ShaaveChild is Test {
     uint[]       dummyAmountsOut             = [2e18, 5e18, 3e18];
     uint         dummyAmountIn               = 1;
     uint         _collateralTokenAmount      = 10e18;
-    uint         ShaaveLoanToValueRatio      = 70;
-
-    struct PositionData {
-        // -- Arrays related to adding to a position --
-        uint[] shortTokenAmountsSwapped;
-        uint[] baseAmountsReceived;
-        uint[] collateralAmounts;
-        // -- Arrays related to reducing a position --
-        uint[] baseAmountsSwapped;
-        uint[] shortTokenAmountsReceived;
-        // -- Miscellaneous -- 
-        uint backingBaseAmount;
-        address shortTokenAddress;
-        bool hasDebt;
-    }
+    uint         shaaveLoanToValueRatio      = 70;
 
     function setUp() public {
         testShaaveChild           = new ShaaveChild(_userAddress, testAavePoolAddress, testAaveOracleAddress);
@@ -68,7 +55,7 @@ contract Test_ShaaveChild is Test {
                 abi.encodeWithSelector(ISwapRouter(swapRouterAddress).exactInputSingle.selector),
                 abi.encode(dummyAmountsOut[i])
             );
-            testShaaveChildOpenShorts.short(shortAddresses[i],  _collateralTokenAmount, _userAddress);
+            testShaaveChildOpenShorts.short(shortAddresses[i], baseTokenAddress, _collateralTokenAmount, shaaveLoanToValueRatio, _userAddress);
         }
     }
     
@@ -107,7 +94,7 @@ contract Test_ShaaveChild is Test {
         );
 
         // Act
-        success = testShaaveChild.short(shortTokenAddressDAI, _collateralTokenAmount, _userAddress);
+        success = testShaaveChild.short(shortTokenAddressDAI, baseTokenAddress, _collateralTokenAmount, shaaveLoanToValueRatio, _userAddress);
 
         // Assert
         assertEq(success, true);
@@ -119,7 +106,7 @@ contract Test_ShaaveChild is Test {
     **
     *******************************************************************************/
 
-    function test_getAccountingData_1shortDAI_1shortWETH_1BTC() public {
+    function test_getAccountingData() public {
 
         // Arrange
         bool[3]    memory actualUserHasDebt = [false, false, false];
@@ -130,11 +117,10 @@ contract Test_ShaaveChild is Test {
         uint[3]    memory actualShortTokenAmountsSwapped;
         uint[3]    memory expectedShortTokenAmountsSwapped;
 
+
         // Act
         for (uint i = 0; i < shortAddresses.length; i++){
             // Actual
-            vm.prank(_userAddressWithOpenShorts);
-            actualUserHasDebt[i]              = testShaaveChildOpenShorts.getAccountingData()[i].hasDebt;
             vm.prank(_userAddressWithOpenShorts);
             actualShortTokenAddress[i]        = testShaaveChildOpenShorts.getAccountingData()[i].shortTokenAddress;
             vm.prank(_userAddressWithOpenShorts);
@@ -147,27 +133,17 @@ contract Test_ShaaveChild is Test {
             actualBackingBaseAmount[i]        = testShaaveChildOpenShorts.getAccountingData()[i].backingBaseAmount;
 
             // Expected
-            expectedShortTokenAmountsSwapped[i] = ((_collateralTokenAmount * ShaaveLoanToValueRatio).dividedBy(100, 0)).dividedBy(dummyInputTokenPricesUSD[i].dividedBy(dummyBaseTokenPriceUSD[i], 18), 18);   
+            expectedShortTokenAmountsSwapped[i] = ((_collateralTokenAmount * shaaveLoanToValueRatio).dividedBy(100, 0)).dividedBy(dummyInputTokenPricesUSD[i].dividedBy(dummyBaseTokenPriceUSD[i], 18), 18);   
         }
         
         // Assert
-        assertEq(actualUserHasDebt[0], true);
-        assertEq(actualUserHasDebt[1], true);
-        assertEq(actualUserHasDebt[2], true);
-        assertEq(actualShortTokenAddress[0], shortAddresses[0]);
-        assertEq(actualShortTokenAddress[1], shortAddresses[1]);
-        assertEq(actualShortTokenAddress[2], shortAddresses[2]);
-        assertEq(actualCollateralAmounts[0], _collateralTokenAmount);
-        assertEq(actualCollateralAmounts[1], _collateralTokenAmount);
-        assertEq(actualCollateralAmounts[2], _collateralTokenAmount);
-        assertEq(actualShortTokenAmountsSwapped[0], expectedShortTokenAmountsSwapped[0]);
-        assertEq(actualShortTokenAmountsSwapped[1], expectedShortTokenAmountsSwapped[1]);
-        assertEq(actualShortTokenAmountsSwapped[2], expectedShortTokenAmountsSwapped[2]);
-        assertEq(actualBaseAmountsRecieved[0], dummyAmountsOut[0]);
-        assertEq(actualBaseAmountsRecieved[1], dummyAmountsOut[1]);
-        assertEq(actualBaseAmountsRecieved[2], dummyAmountsOut[2]);
-        assertEq(actualBackingBaseAmount[0], dummyAmountsOut[0]);
-        assertEq(actualBackingBaseAmount[1], dummyAmountsOut[1]);
-        assertEq(actualBackingBaseAmount[2], dummyAmountsOut[2]);
+        for (uint i; i < shortAddresses.length; i++) {
+            assertEq(actualUserHasDebt[i], true);
+            assertEq(actualShortTokenAddress[i], shortAddresses[i]);
+            assertEq(actualCollateralAmounts[i], _collateralTokenAmount);
+            assertEq(actualShortTokenAmountsSwapped[i], expectedShortTokenAmountsSwapped[i]);
+            assertEq(actualBaseAmountsRecieved[i], dummyAmountsOut[i]);
+            assertEq(actualBackingBaseAmount[i], dummyAmountsOut[i]);
+        }
     }
 }

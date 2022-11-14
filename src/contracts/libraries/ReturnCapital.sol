@@ -53,7 +53,7 @@ library ReturnCapital {
     /** 
     * @dev This function is used to calculate the amount of collateral (in Wei) that can be withdrawn at any given sell event.
     *      It's structured to always withdraw the maximum amount of collateral from Aave with a 10% buffer (to prevent damaging
-    *      the child contract's health factor on Aaave), such that the debt-to-collateral ratio remains below 70% (Aave's max 
+    *      the child contract's health factor on Aave), such that the debt-to-collateral ratio remains below 70% (Aave's max 
     *      is 80% for USDC).
     * @param _childAddress The address of the contract that's attempting to withdraw collateral.
     * @return withdrawalAmount The amount of collateral (in Wei) to be withdrawn to the user.
