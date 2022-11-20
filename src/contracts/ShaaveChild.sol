@@ -97,6 +97,7 @@ contract ShaaveChild is Ownable {
         // 4. Update user's accounting
         if (userPositions[_shortTokenAddress][_baseTokenAddress].shortTokenAddress == address(0)) {
             userPositions[_shortTokenAddress][_baseTokenAddress].shortTokenAddress = _shortTokenAddress;
+            userPositions[_shortTokenAddress][_baseTokenAddress].baseTokenAddress  = _baseTokenAddress;
         }
 
         if (!openShortPositions.includes(_shortTokenAddress)) {
