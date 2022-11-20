@@ -7,12 +7,13 @@ interface IShaaveParent {
 
     function addShortPosition(
         address _shortTokenAddress,
-        uint _collateralTokenAmount
+        address _baseTokenAddress,
+        uint _baseTokenAmount
     ) external;
 
     function getNeededCollateralAmount(
-        address _collateralTokenAddress,
         address _shortTokenAddress,
+        address _baseTokenAddress,
         uint _shortTokenAmount
     ) external;
 
