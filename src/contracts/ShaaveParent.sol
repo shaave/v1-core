@@ -98,12 +98,18 @@ contract ShaaveParent {
         address _shortTokenAddress,
         address _baseTokenAddress,
         uint _shortTokenAmount
-    ) public view returns (uint collateralTokenAmount) {
-        // TODO: get LTV from bitmap and add buffer to it.
-        uint LVT_MINUS_BUFFER = 70;
-        uint priceOfShortTokenInBase = _shortTokenAddress.pricedIn(_baseTokenAddress);                   // Wei
-        uint amountShortTokenBase = (_shortTokenAmount * priceOfShortTokenInBase).dividedBy(1e18, 0);   // Wei
-        collateralTokenAmount = (amountShortTokenBase.dividedBy(LVT_MINUS_BUFFER, 0)) * 100;                          // Wei
+    ) public view returns (uint) {
+        uint reserveConfigurationMapData = IPool(aavePoolAddress).getReserveData(_shortTokenAddress).configuration.data; // state and configuration of reserve
+        uint lastNbits                   = 16;                                                                           // bit 0-15: LTV
+        uint mask                        = (1 << lastNbits) - 1;
+        uint LTV                         = (reserveConfigurationMapData & mask) / 100;                                   // Aave's LTV
+        uint ShaaveBuffer                = 10;                                                                           // Shaave's buffer on Aave's LTV
+        uint LVT_MINUS_BUFFER            = LTV - ShaaveBuffer;
+        uint priceOfShortTokenInBase     = _shortTokenAddress.pricedIn(_baseTokenAddress);                               // Wei
+        uint amountShortTokenBase        = (_shortTokenAmount * priceOfShortTokenInBase).dividedBy(1e18, 0);             // Wei
+        uint collateralTokenAmount       = (amountShortTokenBase.dividedBy(LVT_MINUS_BUFFER, 0)) * 100;                  // Wei
+
+        return collateralTokenAmount;
     }
 
     /** 
