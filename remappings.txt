@@ -1,6 +1,6 @@
-@aave-protocol/=lib/aave-v3-core/contracts
-@uniswap-v3-periphery/=lib/v3-periphery/contracts
-@uniswap-v3-core/=lib/v3-core/contracts
-@openzeppelin/=lib/openzeppelin-contracts
-@uniswap/v3-core/contracts/=lib/v3-core/contracts
+aave-protocol/=lib/aave-v3-core/contracts
+uniswap-v3-periphery/=lib/v3-periphery/contracts
+uniswap-v3-core/=lib/v3-core/contracts
+openzeppelin/=lib/openzeppelin-contracts
+uniswap/v3-core/contracts/=lib/v3-core/contracts
 forge-std/=lib/forge-std/src/

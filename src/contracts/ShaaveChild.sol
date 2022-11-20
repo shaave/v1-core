@@ -1,6 +1,6 @@
 // contracts/ShaaveChild.sol
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.10;
+pragma solidity ^0.8.16;
 pragma abicoder v2;
 
 // Local Imports
@@ -9,10 +9,10 @@ import "./libraries/ReturnCapital.sol";
 import "./libraries/AddressArray.sol";
 
 // External Package Imports
-import "@aave-protocol/interfaces/IPool.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@uniswap-v3-periphery/interfaces/ISwapRouter.sol";
-import "@uniswap-v3-periphery/libraries/TransferHelper.sol";
+import "aave-protocol/interfaces/IPool.sol";
+import "openzeppelin/contracts/access/Ownable.sol";
+import "uniswap-v3-periphery/interfaces/ISwapRouter.sol";
+import "uniswap-v3-periphery/libraries/TransferHelper.sol";
 
 /// @title shAave child contract, owned by the ShaaveParent
 contract ShaaveChild is Ownable {

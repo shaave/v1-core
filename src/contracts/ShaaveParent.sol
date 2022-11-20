@@ -1,11 +1,10 @@
 // contracts/ShaaveParent.sol
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.10;
-pragma abicoder v2;
+pragma solidity ^0.8.16;
 
 // External Packages
-import "@aave-protocol/interfaces/IPool.sol";
-import "@aave-protocol/interfaces/IAaveOracle.sol";
+import "aave-protocol/interfaces/IPool.sol";
+import "aave-protocol/interfaces/IAaveOracle.sol";
 import "forge-std/console.sol";
 
 // Local
@@ -23,6 +22,7 @@ contract ShaaveParent {
     address private admin;
     mapping(address => address) public userContracts;
     address[] private childContracts;
+    uint ltvBuffer;
 
     // -- Aave Variables --
     address public aavePoolAddress;
@@ -31,10 +31,11 @@ contract ShaaveParent {
     // -- Events --
     event CollateralSuccess(address user, address baseTokenAddress, uint amount);
     
-    constructor(address _aavePoolAddress, address _aaveOracleAddress) {
+    constructor(address _aavePoolAddress, address _aaveOracleAddress, uint _ltvBuffer) {
         admin = payable(msg.sender);
-        aavePoolAddress = _aavePoolAddress;     //  0x368EedF3f56ad10b9bC57eed4Dac65B26Bb667f6 Goerli
-        aaveOracleAddress = _aaveOracleAddress; //  0x5bed0810073cc9f0DacF73C648202249E87eF6cB Goerli
+        aavePoolAddress = _aavePoolAddress;
+        aaveOracleAddress = _aaveOracleAddress;
+        ltvBuffer = _ltvBuffer;
     }
 
     /** 
@@ -62,10 +63,10 @@ contract ShaaveParent {
         supplyOnBehalfOfChild(childContractAddress, _baseTokenAddress, _baseTokenAmount);
 
         // 3. Finish shorting process on user's child contract
-        IShaaveChild(childContractAddress).short(_shortTokenAddress, _baseTokenAmount, msg.sender);
+        uint shaaveLTV = getAssetLTV(_shortTokenAddress);
+        IShaaveChild(childContractAddress).short(_shortTokenAddress, _baseTokenAddress, _baseTokenAmount, shaaveLTV, msg.sender);
         return true;
     }
-
 
     /** 
     * @dev This private function (only accessible by this contract) is used to supply collateral on a user's child contract's behalf.
@@ -99,17 +100,20 @@ contract ShaaveParent {
         address _baseTokenAddress,
         uint _shortTokenAmount
     ) public view returns (uint) {
-        uint reserveConfigurationMapData = IPool(aavePoolAddress).getReserveData(_shortTokenAddress).configuration.data; // state and configuration of reserve
-        uint lastNbits                   = 16;                                                                           // bit 0-15: LTV
-        uint mask                        = (1 << lastNbits) - 1;
-        uint LTV                         = (reserveConfigurationMapData & mask) / 100;                                   // Aave's LTV
-        uint ShaaveBuffer                = 10;                                                                           // Shaave's buffer on Aave's LTV
-        uint LVT_MINUS_BUFFER            = LTV - ShaaveBuffer;
-        uint priceOfShortTokenInBase     = _shortTokenAddress.pricedIn(_baseTokenAddress);                               // Wei
-        uint amountShortTokenBase        = (_shortTokenAmount * priceOfShortTokenInBase).dividedBy(1e18, 0);             // Wei
-        uint collateralTokenAmount       = (amountShortTokenBase.dividedBy(LVT_MINUS_BUFFER, 0)) * 100;                  // Wei
+        uint shaaveLTV = getAssetLTV(_shortTokenAddress);
+        uint priceOfShortTokenInBase = _shortTokenAddress.pricedIn(_baseTokenAddress);                      // Wei
+        uint amountShortTokenBase = (_shortTokenAmount * priceOfShortTokenInBase).dividedBy(1e18, 0);       // Wei
+        uint collateralTokenAmount = (amountShortTokenBase.dividedBy(shaaveLTV, 0)) * 100;                  // Wei
 
         return collateralTokenAmount;
+    }
+
+    function getShaaveLTV(address _shortTokenAddress) private returns (uint) {
+        uint bitMap = IPool(aavePoolAddress).getReserveData(_shortTokenAddress).configuration.data;
+        uint lastNbits = 16;               // bit 0-15: LTV
+        uint mask = (1 << lastNbits) - 1;
+        uint aaveLTV = (bitMap & mask) / 100;
+        return aaveLTV - ltvBuffer;
     }
 
     /** 

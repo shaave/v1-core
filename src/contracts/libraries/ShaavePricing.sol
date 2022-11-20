@@ -1,12 +1,10 @@
 // contracts/libraries/ShaavePricing.sol
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.10;
-pragma abicoder v2;
+pragma solidity ^0.8.16;
 
 // External Package Imports
-import "@aave-protocol/interfaces/IAaveOracle.sol";
+import "aave-protocol/interfaces/IAaveOracle.sol";
 import "./Math.sol";
-
 
 /**
  * @title ShaavePricing library
