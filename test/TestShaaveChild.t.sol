@@ -17,7 +17,7 @@ contract Test_ShaaveChild is Test {
     address      shortTokenAddressWETH       = 0x2e3A2fb8473316A02b8A297B982498E661E1f6f5;               // Goerli Aave WETH   
     address      shortTokenAddressWBTC       = 0x8869DFd060c682675c2A8aE5B21F2cF738A0E3CE;               // Goerli Aave WBTC
     address      testAaveOracleAddress       = 0x5bed0810073cc9f0DacF73C648202249E87eF6cB;               // Goerli Aave Pricing Oracle Address
-    address      testAavePoolAddress             = 0x368EedF3f56ad10b9bC57eed4Dac65B26Bb667f6;               // Goerli Aave Pool Address
+    address      testAavePoolAddress         = 0x794a61358D6845594F94dc1DB02A252b5b4814aD;               // Goerli Aave Pool Address
     address      _userAddress                = 0xa4F9f089677Bf68c8F38Fe9bffEF2be52EA679bF;               // https://vanity-eth.tk/ random-generated
     address      _userAddressWithOpenShorts  = 0x476c02dfe2166fB8489Ed52836F4c5DEc8d066CE;               // https://vanity-eth.tk/ random-generated
     address[]    shortAddresses              = [shortTokenAddressDAI, 

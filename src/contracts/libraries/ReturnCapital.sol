@@ -1,6 +1,6 @@
 // contracts/libraries/ReturnCapital.sol
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.16;
+pragma solidity ^0.8.10;
 
 
 // Local Imports
@@ -8,7 +8,7 @@ import "./ShaavePricing.sol";
 import "./Math.sol";
 
 // External Package Imports
-import "aave-protocol/interfaces/IPool.sol";
+import "@aave-protocol/interfaces/IPool.sol";
 
 
 /**
@@ -21,7 +21,7 @@ library ReturnCapital {
     using Math for uint;
     using ShaavePricing for address;
 
-    address constant aavePoolAddress = 0x368EedF3f56ad10b9bC57eed4Dac65B26Bb667f6;   // Goerli Aave Pool Address
+    address constant aavePoolAddress = 0x794a61358D6845594F94dc1DB02A252b5b4814aD;
 
     /** 
     * @dev This function is used to calculate a trade's gains (in Wei).

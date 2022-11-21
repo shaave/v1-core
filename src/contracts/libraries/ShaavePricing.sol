@@ -1,9 +1,9 @@
 // contracts/libraries/ShaavePricing.sol
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.16;
+pragma solidity ^0.8.10;
 
 // External Package Imports
-import "aave-protocol/interfaces/IAaveOracle.sol";
+import "@aave-protocol/interfaces/IAaveOracle.sol";
 import "./Math.sol";
 
 /**
@@ -15,7 +15,7 @@ library ShaavePricing {
 
     using Math for uint;
 
-    address constant aaveOracleAddress = 0x5bed0810073cc9f0DacF73C648202249E87eF6cB;  // Goerli Aave Pricing Oracle Address
+    address constant aaveOracleAddress = 0xb023e699F5a33916Ea823A16485e259257cA8Bd1;  // Polygon
 
     function pricedIn(address _inputTokenAddress, address _baseTokenAddress) internal view returns (uint assetPriceInBase) {
         uint inputTokenPriceUSD = IAaveOracle(aaveOracleAddress).getAssetPrice(_inputTokenAddress);

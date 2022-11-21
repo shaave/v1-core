@@ -9,15 +9,14 @@ interface IShaaveParent {
         address _shortTokenAddress,
         address _baseTokenAddress,
         uint _baseTokenAmount
-    ) external;
+    ) external returns (bool);
 
     function getNeededCollateralAmount(
         address _shortTokenAddress,
         address _baseTokenAddress,
         uint _shortTokenAmount
-    ) external;
+    ) external returns (bool);
 
-    function returnUserContractByAddress(address _userAddress) external;
 
-    function retrieveChildContracts() external;
+    function retrieveChildContracts() external returns (address[] memory);
 }

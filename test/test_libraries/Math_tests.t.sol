@@ -15,7 +15,7 @@ contract Test_Math is Test {
 
     function test_dividedBy() public {
 
-        // Arrange
+        // Setup
         uint numerator     = 13;
         uint denominator   = 3;
         uint precision     = 0;
@@ -24,13 +24,13 @@ contract Test_Math is Test {
         // Act
         quotient = numerator.dividedBy(denominator, precision);
 
-        // Assert
+        // Assertions
         assertEq(quotient, 4);
     }
 
     function test_dividedBy_nonzeroPrecision() public {
 
-        // Arrange
+        // Setup
         uint numerator     = 13;
         uint denominator   = 3;
         uint precision     = 18;
@@ -39,7 +39,7 @@ contract Test_Math is Test {
         // Act
         quotient = numerator.dividedBy(denominator, precision);
 
-        // Assert
+        // Assertions
         assertEq(quotient, 4333333333333333333);
     }
 }

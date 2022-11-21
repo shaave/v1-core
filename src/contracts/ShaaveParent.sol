@@ -1,10 +1,10 @@
 // contracts/ShaaveParent.sol
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.16;
+pragma solidity ^0.8.10;
 
 // External Packages
-import "aave-protocol/interfaces/IPool.sol";
-import "aave-protocol/interfaces/IAaveOracle.sol";
+import "@aave-protocol/interfaces/IPool.sol";
+import "@aave-protocol/interfaces/IAaveOracle.sol";
 import "forge-std/console.sol";
 
 // Local
@@ -63,7 +63,7 @@ contract ShaaveParent {
         supplyOnBehalfOfChild(childContractAddress, _baseTokenAddress, _baseTokenAmount);
 
         // 3. Finish shorting process on user's child contract
-        uint shaaveLTV = getAssetLTV(_shortTokenAddress);
+        uint shaaveLTV = getShaaveLTV(_shortTokenAddress);
         IShaaveChild(childContractAddress).short(_shortTokenAddress, _baseTokenAddress, _baseTokenAmount, shaaveLTV, msg.sender);
         return true;
     }
@@ -100,7 +100,7 @@ contract ShaaveParent {
         address _baseTokenAddress,
         uint _shortTokenAmount
     ) public view returns (uint) {
-        uint shaaveLTV = getAssetLTV(_shortTokenAddress);
+        uint shaaveLTV = getShaaveLTV(_shortTokenAddress);
         uint priceOfShortTokenInBase = _shortTokenAddress.pricedIn(_baseTokenAddress);                      // Wei
         uint amountShortTokenBase = (_shortTokenAmount * priceOfShortTokenInBase).dividedBy(1e18, 0);       // Wei
         uint collateralTokenAmount = (amountShortTokenBase.dividedBy(shaaveLTV, 0)) * 100;                  // Wei
@@ -108,7 +108,7 @@ contract ShaaveParent {
         return collateralTokenAmount;
     }
 
-    function getShaaveLTV(address _shortTokenAddress) private returns (uint) {
+    function getShaaveLTV(address _shortTokenAddress) private view returns (uint) {
         uint bitMap = IPool(aavePoolAddress).getReserveData(_shortTokenAddress).configuration.data;
         uint lastNbits = 16;               // bit 0-15: LTV
         uint mask = (1 << lastNbits) - 1;

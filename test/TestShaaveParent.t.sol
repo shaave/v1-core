@@ -21,7 +21,7 @@ contract TestShaaveParentData is Test {
 
     // Constants
     address testAaveOracleAddress = 0x5bed0810073cc9f0DacF73C648202249E87eF6cB;
-    address testAavePoolAddress = 0x368EedF3f56ad10b9bC57eed4Dac65B26Bb667f6;
+    address testAavePoolAddress = 0x794a61358D6845594F94dc1DB02A252b5b4814aD;
     address testShortTokenAddress = 0xDF1742fE5b0bFc12331D8EAec6b478DfDbD31464;
     address testBaseTokenAddress  = 0xA2025B15a1757311bfD68cb14eaeFCc237AF5b43; 
     uint    testShortTokenAmount  = 15e18;                                      
@@ -30,7 +30,7 @@ contract TestShaaveParentData is Test {
     event CollateralSuccess(address user, address testBaseTokenAddress , uint amount);
 
     function setUp() public {
-        shaaveParent = new ShaaveParent(testAavePoolAddress, testAaveOracleAddress);
+        shaaveParent = new ShaaveParent(testAavePoolAddress, testAaveOracleAddress, 10);
         mockAavePool = new MockAavePool();
     }
 

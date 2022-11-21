@@ -7,30 +7,27 @@ interface IShaaveChild {
 
     function short(
         address _shortTokenAddress,
-        uint _collateralTokenAmount,
+        address _baseTokenAddress,
+        uint _baseTokenAmount,
+        uint _baseLoanToValueRatio,
         address _userAddress
-    ) external;
+    ) external returns (bool);
 
     function reducePosition(
         address _shortTokenAddress,
         uint _percentageReduction,
         bool _withdrawCollateral
-    ) external;
+    ) external returns (bool);
 
-    function payOutstandingDebt(
-        address _shortTokenAddress,
-        address _paymentToken,
-        uint _paymentAmount,
-        bool _withdrawCollateral
-    ) external;
+    function payOutstandingDebt(address _shortTokenAddress, address _baseTokenAddress, address _paymentToken, uint _paymentAmount, bool _withdrawCollateral) external returns (bool);
 
-    function getOutstandingDebt(address _shortTokenAddress) external;
+    function getOutstandingDebt(address _shortTokenAddress) external returns (uint);
 
-    function getOutstandingDebtBase(address _shortTokenAddress) external;
+    function getOutstandingDebtBase(address _shortTokenAddress, address _baseTokenAddress) external returns (uint);
 
     function getAccountingData() external;
     
-    function getAaveAccountData() external;
+    function getAaveAccountData() external returns (uint, uint, uint, uint, uint, uint, uint);
 
     function withdrawCollateral(uint _withdrawAmount) external;
 }

@@ -1,6 +1,6 @@
 // contracts/ShaaveChild.sol
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.16;
+pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 // Local Imports
@@ -9,10 +9,10 @@ import "./libraries/ReturnCapital.sol";
 import "./libraries/AddressArray.sol";
 
 // External Package Imports
-import "aave-protocol/interfaces/IPool.sol";
-import "openzeppelin/contracts/access/Ownable.sol";
-import "uniswap-v3-periphery/interfaces/ISwapRouter.sol";
-import "uniswap-v3-periphery/libraries/TransferHelper.sol";
+import "@aave-protocol/interfaces/IPool.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@uniswap-v3-periphery/interfaces/ISwapRouter.sol";
+import "@uniswap-v3-periphery/libraries/TransferHelper.sol";
 
 /// @title shAave child contract, owned by the ShaaveParent
 contract ShaaveChild is Ownable {
@@ -342,7 +342,7 @@ contract ShaaveChild is Ownable {
     * @return outstandingDebtBase This contract's total debt, in terms the base token (in Wei), for a given short token.
     **/
     function getOutstandingDebtBase(address _shortTokenAddress, address _baseTokenAddress) public view adminOnly returns (uint outstandingDebtBase) {
-        uint priceOfShortTokenInBase = _shortTokenAddress.pricedIn(_baseTokenAddress);               // Wei
+        uint priceOfShortTokenInBase = _shortTokenAddress.pricedIn(_baseTokenAddress);              // Wei
         uint totalShortTokenDebt = getOutstandingDebt(_shortTokenAddress);                          // Wei
         outstandingDebtBase = (priceOfShortTokenInBase * totalShortTokenDebt).dividedBy(1e18, 0);   // Wei
     }
