@@ -1,4 +1,3 @@
-// contracts/ShortStop.sol
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.10;
 
@@ -7,9 +6,7 @@ interface IShaaveChild {
 
     function short(
         address _shortTokenAddress,
-        address _baseTokenAddress,
         uint _baseTokenAmount,
-        uint _baseLoanToValueRatio,
         address _userAddress
     ) external returns (bool);
 
@@ -19,11 +16,11 @@ interface IShaaveChild {
         bool _withdrawCollateral
     ) external returns (bool);
 
-    function payOutstandingDebt(address _shortTokenAddress, address _baseTokenAddress, address _paymentToken, uint _paymentAmount, bool _withdrawCollateral) external returns (bool);
+    function payOutstandingDebt(address _shortTokenAddress, address _paymentToken, uint _paymentAmount, bool _withdrawCollateral) external returns (bool);
 
     function getOutstandingDebt(address _shortTokenAddress) external returns (uint);
 
-    function getOutstandingDebtBase(address _shortTokenAddress, address _baseTokenAddress) external returns (uint);
+    function getOutstandingDebtBase(address _shortTokenAddress) external returns (uint);
 
     function getAccountingData() external;
     

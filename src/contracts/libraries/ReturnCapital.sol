@@ -10,6 +10,7 @@ import "./Math.sol";
 // External Package Imports
 import "@aave-protocol/interfaces/IPool.sol";
 
+import "forge-std/console.sol";
 
 /**
  * @title ReturnCapital library
@@ -22,28 +23,29 @@ library ReturnCapital {
     using ShaavePricing for address;
 
     address constant aavePoolAddress = 0x794a61358D6845594F94dc1DB02A252b5b4814aD;
+    uint constant WITHDRAWAL_BUFFER = 1e15;
 
     /** 
     * @dev This function is used to calculate a trade's gains (in Wei).
-    * @param _shortTokenAddress The address of the short token the user wants to reduce his or her position in.
+    * @param _shortToken The address of the short token the user wants to reduce his or her position in.
     * @param _baseTokenAddress The address of the base token.
-    * @param _totalShortTokenDebt The contract's total debt (in Wei) for a specific short token.
-    * @param _percentageReduction The percentage reduction of the user's short position; 100% constitutes closing out the position.
-    * @param _positionbackingBaseAmount The amount of base asset (in Wei) this contract has allocated for a specific asset short position.
+    * @param _totalShortTokenDebt The contract's total debt for a specific short token (Units: 18 decimals).
+    * @param _percentageReduction The percentage reduction of the user's short position; 100 constitutes closing out the position.
+    * @param _positionbackingBaseAmount The amount of base token backing a position (Units: 18 decimals).
     * @return gains The gains the trade at hand yielded; if nonzero, this value (in Wei) will be paid out to the user.
-    * @notice debtValueBase This total debt's value in the base asset (in Wei).
+    * @notice debtValueBase This total debt's value in the base asset (Units: base token decimals).
     **/
-    function calculatePositionGains(
-        address _shortTokenAddress,
+    function getPositionGains(
+        address _shortToken,
         address _baseTokenAddress,
         uint _percentageReduction,
         uint _positionbackingBaseAmount,
         uint _totalShortTokenDebt
     ) internal view returns (uint gains) {
-        uint priceOfShortTokenInBase = _shortTokenAddress.pricedIn(_baseTokenAddress);                          // Wei
-        uint debtValueBase = (priceOfShortTokenInBase * _totalShortTokenDebt).dividedBy(1e18, 0);               // Wei
+        uint priceOfShortTokenInBase = _shortToken.pricedIn(_baseTokenAddress);                      // Wei
+        uint debtValueBase = (priceOfShortTokenInBase * _totalShortTokenDebt) / 1e18;    // Wei
         if (_positionbackingBaseAmount > debtValueBase) {
-            gains = (_percentageReduction * (_positionbackingBaseAmount - debtValueBase)).dividedBy(100, 0);    // Wei
+            gains = (_percentageReduction * (_positionbackingBaseAmount - debtValueBase)) / 100;    // Wei
         } else {
             gains = 0;
         }
@@ -65,21 +67,20 @@ library ReturnCapital {
     *                       this would cause a transaction reversion, we must leave enough collateral to back any uncaptured
     *                       debt (smaller than 1e10 Wei). 
     **/
-    function calculateCollateralWithdrawAmount(address _childAddress) internal view returns (uint withdrawalAmount) {
-        uint ShaaveDebtToCollateral = 70;
-        uint maxUncapturedDebt      = 9999999999;
-        uint uncapturedCollateral   = (maxUncapturedDebt.dividedBy(ShaaveDebtToCollateral,0) * 100);                         // Wei
-        uint maxWithdrawal;
+    function getMaxWithdrawal(address _childAddress, uint _shaaveLTV) internal view returns (uint withdrawalAmount) {
 
-        (uint totalCollateralBase, uint totalDebtBase, , , , ) = IPool(aavePoolAddress).getUserAccountData(_childAddress);   // Must multiply by 1e10 to get Wei
+        (uint totalCollateralBase, uint totalDebtBase, , , , ) = IPool(aavePoolAddress).getUserAccountData(_childAddress);                     // Multiply by 1e10 to get Wei
 
-        if (totalCollateralBase > (uncapturedCollateral.dividedBy(1e10, 0) + (totalDebtBase.dividedBy(ShaaveDebtToCollateral, 0) * 100))){
-            maxWithdrawal    = ((totalCollateralBase - (totalDebtBase.dividedBy(ShaaveDebtToCollateral, 0) * 100)) * 1e10) - uncapturedCollateral;    // Wei
-            withdrawalAmount = maxWithdrawal;
+        uint loanBackingCollateral = (totalDebtBase.dividedBy(_shaaveLTV, 0) * 100) * 1e10;                          // Wei
+
+        if (totalCollateralBase * 1e10 > loanBackingCollateral){
+            withdrawalAmount = ((totalCollateralBase - (totalDebtBase.dividedBy(_shaaveLTV, 0) * 100)) * 1e10) - WITHDRAWAL_BUFFER;      // Wei
         } else {
-            withdrawalAmount = 0;
+            withdrawalAmount = 0;    // Wei
         }
 
-        return withdrawalAmount;
-    }   
+        console.log("[getMaxWithdrawal]: totalCollateralBase:", totalCollateralBase);
+        console.log("[getMaxWithdrawal]: totalDebtBase:", totalDebtBase);
+        console.log("[getMaxWithdrawal]: withdrawalAmount:", withdrawalAmount);
+    }
 }

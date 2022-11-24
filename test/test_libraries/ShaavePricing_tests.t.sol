@@ -22,12 +22,12 @@ contract Test_ShaavePricing is Test {
 
     function test_pricedIn() public {
         // Expectations
-        uint inputTokenPriceUSD = IAaveOracle(AAVE_ORACLE_ADDRESS).getAssetPrice(SHORT_TOKEN_ADDRESS);
-        uint baseTokenPriceUSD = IAaveOracle(AAVE_ORACLE_ADDRESS).getAssetPrice(BASE_TOKEN_ADDRESS);
+        uint inputTokenPriceUSD = IAaveOracle(AAVE_ORACLE).getAssetPrice(SHORT_TOKEN);
+        uint baseTokenPriceUSD = IAaveOracle(AAVE_ORACLE).getAssetPrice(BASE_TOKEN);
         uint expectedAssetPriceInBase = inputTokenPriceUSD.dividedBy(baseTokenPriceUSD, 18);  
 
         // Act
-        uint assetPriceInBase = SHORT_TOKEN_ADDRESS.pricedIn(BASE_TOKEN_ADDRESS);
+        uint assetPriceInBase = SHORT_TOKEN.pricedIn(BASE_TOKEN);
 
         // Assertions
         assertEq(assetPriceInBase, expectedAssetPriceInBase);

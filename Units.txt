@@ -14,8 +14,8 @@ Uniswap:
 amountOut from exactInputSingle() = ether units * 1e18 (WEI)
 
 
-USDC (specifically) ERC20 balanceOf()
-- Goerli: ether units * 1e6 (WEI / 1e12)
-- Polygon Mainnet: ether units * 1e6 (WEI / 1e12)
-
-Non-USDC ERC20 balance0f() = ether units * 1e18 (WEI)
+USDC decimals: 6
+USDT decimals: 6
+EURS decimals: 2
+BTC decimals: 8
+All other's decimals: 18
