@@ -94,17 +94,22 @@ contract ShaaveParent is Ownable {
     * @dev Returns the amount of a collateral necessary for a desired amount of a short position.
     * @param _shortToken The address of the token the user wants to short.
     * @param _baseToken The address of the token that's used for collateral.
-    * @param _shortTokenAmount The amount of the token the user wants to short (in WEI).
-    * @return amount The amount of the collateral token the user will need to supply, in order to short the inputted amount of the short token.
+    * @param _shortTokenAmount The amount of the token the user wants to short (Units: short token decimals).
+    * @return amount Amount of collateral necessary for desired short position (Units: base token decimals).
     **/
     function getNeededCollateralAmount(
         address _shortToken,
         address _baseToken,
-        uint _shortTokenAmount    // TODO: fix conversion
+        uint _shortTokenAmount
     ) public view returns (uint) {
+        uint shortTokenDecimals = IwERC20(_shortToken).decimals();
+        uint baseTokenDecimals = IwERC20(_baseToken).decimals();
+        uint baseTokenConversion = 10 ** (18 - baseTokenDecimals);
+
+        uint priceOfShortTokenInBase = _shortToken.pricedIn(_baseToken) / baseTokenConversion;                        // Units: base token decimals               
+        uint amountShortTokenBase = (_shortTokenAmount * priceOfShortTokenInBase).dividedBy(10 ** shortTokenDecimals, 0); // Units: base token decimals 
+
         uint shaaveLTV = getShaaveLTV(_baseToken);
-        uint priceOfShortTokenInBase = _shortToken.pricedIn(_baseToken);                               // Wei
-        uint amountShortTokenBase = (_shortTokenAmount * priceOfShortTokenInBase).dividedBy(1e18, 0);       // Wei
 
         return (amountShortTokenBase / shaaveLTV) * 100;
     }

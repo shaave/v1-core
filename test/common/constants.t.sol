@@ -15,4 +15,5 @@ uint constant TEST_BASE_LTV = 72;
 uint constant UNISWAP_AMOUNT_IN_PROFIT = (((TEST_COLLATERAL_AMOUNT * TEST_BASE_LTV) / 100) * 50) / 100; // Max borrow divided by 2
 uint constant UNISWAP_AMOUNT_OUT_LOSSES_FACTOR = 2;
 uint constant WITHDRAWAL_BUFFER = 1e15;
+uint constant SHORT_TOKEN_AMOUNT = 1e8;
 
