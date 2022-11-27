@@ -42,7 +42,7 @@ contract ShaaveChild is Ownable {
     
     mapping(address => address) private userContracts;
     address[] private childContracts;
-    address[] private openShortPositions;
+    address[] private openedShortPositions;
     mapping(address => PositionData) public userPositions;
 
     // -- Constructor Variables --
@@ -111,8 +111,8 @@ contract ShaaveChild is Ownable {
             userPositions[_shortToken].hasDebt = true;
         }
 
-        if (!openShortPositions.includes(_shortToken)) {
-            openShortPositions.push(_shortToken);
+        if (!openedShortPositions.includes(_shortToken)) {
+            openedShortPositions.push(_shortToken);
         }
             
         userPositions[_shortToken].shortTokenAmountsSwapped.push(amountIn);
@@ -145,7 +145,6 @@ contract ShaaveChild is Ownable {
         // 2. Swap short tokens for base tokens
         (uint amountIn, uint amountOut) = swapToShortToken(_shortToken, baseToken, positionReduction, userPositions[_shortToken].backingBaseAmount);
 
-
         // 3. Repay Aave loan with the amount of short token received from Uniswap
         IERC20(_shortToken).approve(AAVE_POOL, amountOut);        
         IPool(AAVE_POOL).repay(_shortToken, amountOut, 2, address(this));
@@ -153,21 +152,8 @@ contract ShaaveChild is Ownable {
         /// @dev shortTokenConversion = (10 ** (18 - IwERC20(_shortToken).decimals()))
         uint debtAfterRepay = getOutstandingDebt(_shortToken) * (10 ** (18 - IwERC20(_shortToken).decimals()));      // Wei, as that's what getPositionGains wants
 
-        // 4. Update child contract's accounting
-        userPositions[_shortToken].baseAmountsSwapped.push(amountIn);
-        userPositions[_shortToken].shortTokenAmountsReceived.push(amountOut);
-        userPositions[_shortToken].backingBaseAmount -= amountIn;
 
-        if (userPositions[_shortToken].backingBaseAmount == 0) {
-            openShortPositions.removeAddress(_shortToken);
-        }
-
-        if (debtAfterRepay == 0) {
-            userPositions[_shortToken].hasDebt = false;
-        }
-        
-        
-        // 5. Withdraw correct percentage of collateral, and return to user
+        // 4. Withdraw correct percentage of collateral, and return to user
         if (_withdrawCollateral) {
             uint withdrawalAmount = ReturnCapital.getMaxWithdrawal(address(this), shaaveLTV);
     
@@ -176,13 +162,23 @@ contract ShaaveChild is Ownable {
             }
         }
         
-        // 6. If trade was profitable, pay user gains
-        uint gains = ReturnCapital.getPositionGains(_shortToken, baseToken, _percentageReduction, userPositions[_shortToken].backingBaseAmount * baseTokenConversion, debtAfterRepay);
+        // 5. If trade was profitable, pay user gains
+        uint backingBaseAmountWei = (userPositions[_shortToken].backingBaseAmount - amountIn) * baseTokenConversion;
+        uint gains = ReturnCapital.getPositionGains(_shortToken, baseToken, _percentageReduction, backingBaseAmountWei, debtAfterRepay);
         if (gains > 0) {
             IERC20(baseToken).transfer(msg.sender, gains / baseTokenConversion);
-            userPositions[_shortToken].backingBaseAmount -= gains / baseTokenConversion;
         }
         
+        // 6. Update child contract's accounting
+        userPositions[_shortToken].baseAmountsSwapped.push(amountIn);
+        userPositions[_shortToken].shortTokenAmountsReceived.push(amountOut);
+        userPositions[_shortToken].backingBaseAmount -= (amountIn + gains / baseTokenConversion);
+
+        if (debtAfterRepay == 0) {
+            userPositions[_shortToken].hasDebt = false;
+        }
+        
+
         return true;
     }
 
@@ -360,10 +356,10 @@ contract ShaaveChild is Ownable {
     * @return aggregatedPositionData A list of user's positions and their associated accounting data.
     **/
     function getAccountingData() external view userOnly returns (PositionData[] memory) {
-        address[] memory _openShortPositions = openShortPositions; // Optimizes gas
-        PositionData[] memory aggregatedPositionData = new PositionData[](_openShortPositions.length);
-        for (uint i = 0; i < _openShortPositions.length; i++) {
-            PositionData storage position = userPositions[_openShortPositions[i]];
+        address[] memory _openedShortPositions = openedShortPositions; // Optimizes gas
+        PositionData[] memory aggregatedPositionData = new PositionData[](_openedShortPositions.length);
+        for (uint i = 0; i < _openedShortPositions.length; i++) {
+            PositionData storage position = userPositions[_openedShortPositions[i]];
             aggregatedPositionData[i] = position;
         }
         return aggregatedPositionData;

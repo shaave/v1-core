@@ -100,13 +100,13 @@ contract ShaaveParent is Ownable {
     function getNeededCollateralAmount(
         address _shortToken,
         address _baseToken,
-        uint _shortTokenAmount
+        uint _shortTokenAmount    // TODO: fix conversion
     ) public view returns (uint) {
         uint shaaveLTV = getShaaveLTV(_baseToken);
-        uint priceOfShortTokenInBase = _shortToken.pricedIn(_baseToken);                                    // Wei
+        uint priceOfShortTokenInBase = _shortToken.pricedIn(_baseToken);                               // Wei
         uint amountShortTokenBase = (_shortTokenAmount * priceOfShortTokenInBase).dividedBy(1e18, 0);       // Wei
 
-        return (amountShortTokenBase.dividedBy(shaaveLTV, 0)) * 100;
+        return (amountShortTokenBase / shaaveLTV) * 100;
     }
     
     /** 

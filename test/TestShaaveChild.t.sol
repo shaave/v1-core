@@ -16,6 +16,16 @@ import "./mocks/MockUniswap.t.sol";
 import "./common/constants.t.sol";
 
 
+/* TODO: The following still needs to be tested here:
+1. XXX Reduce position: Test actual runthrough without mock
+2. Reduce position 100% with no gains, and ensure no gains (easy)
+3. Reduce position by < 100%, with gains, and ensure correct amount gets paid
+4. Reduce position by < 100%, with no gains and ensure no gains
+5. Try to short with all supported collateral -- nested for loop for short tokens?
+6. Then, parent can be tested
+*/
+
+
 contract UniswapHelper is Test {
     using ShaavePricing for address;
 
@@ -51,68 +61,61 @@ contract UniswapHelper is Test {
         vm.revertTo(id);
     }
 
-    // /// @dev This is a test function for computing expected results
-    // function swapToShortToken(
-    //     address _outputToken,
-    //     address _inputToken,
-    //     uint _outputTokenAmount,
-    //     uint _inputMax,
-    //     uint baseTokenConversion,
-    //     uint shortTokenConversion
-    // ) internal returns (uint amountIn, uint amountOut) {
+    /// @dev This is a test function for computing expected results
+    function swapToShortToken(
+        address _outputToken,
+        address _inputToken,
+        uint _outputTokenAmount,
+        uint _inputMax,
+        uint baseTokenConversion
+    ) internal returns (uint amountIn, uint amountOut) {
 
-    //     /// Take snapshot of blockchain state
-    //     uint256 id = vm.snapshot();
+        /// Take snapshot of blockchain state
+        uint256 id = vm.snapshot();
 
-    //     // Give this contract (positionBackingBaseAmount) base tokens
-    //     deal(BASE_TOKEN, address(this), _inputMax);
+        // Give this contract (positionBackingBaseAmount) base tokens
+        deal(BASE_TOKEN, address(this), _inputMax);
         
-    //     ISwapRouter SWAP_ROUTER = ISwapRouter(UNISWAP_SWAP_ROUTER);
-    //     TransferHelper.safeApprove(_inputToken, address(SWAP_ROUTER), _inputMax);
+        ISwapRouter SWAP_ROUTER = ISwapRouter(UNISWAP_SWAP_ROUTER);
+        TransferHelper.safeApprove(_inputToken, address(SWAP_ROUTER), _inputMax);
 
-    //     ISwapRouter.ExactOutputSingleParams memory params =
-    //         ISwapRouter.ExactOutputSingleParams({
-    //             tokenIn: _inputToken,
-    //             tokenOut: _outputToken,
-    //             fee: POOL_FEE,
-    //             recipient: address(this),
-    //             deadline: block.timestamp,
-    //             amountOut: _outputTokenAmount,
-    //             amountInMaximum: _inputMax,
-    //             sqrtPriceLimitX96: 0
-    //         });
+        ISwapRouter.ExactOutputSingleParams memory params =
+            ISwapRouter.ExactOutputSingleParams({
+                tokenIn: _inputToken,
+                tokenOut: _outputToken,
+                fee: POOL_FEE,
+                recipient: address(this),
+                deadline: block.timestamp,
+                amountOut: _outputTokenAmount,
+                amountInMaximum: _inputMax,
+                sqrtPriceLimitX96: 0
+            });
         
-    //     try SWAP_ROUTER.exactOutputSingle(params) returns (uint returnedAmountIn) {
-    //         (amountIn, amountOut) = (returnedAmountIn, _outputTokenAmount);
+        try SWAP_ROUTER.exactOutputSingle(params) returns (uint returnedAmountIn) {
+            (amountIn, amountOut) = (returnedAmountIn, _outputTokenAmount);
+        } catch {
+            amountIn = getAmountIn(_outputTokenAmount, _outputToken, _inputMax, baseTokenConversion);
+            (amountIn, amountOut) = swapExactInput(_inputToken, _outputToken, amountIn);
+        }
 
-    //     } catch Error(string memory message) {
-    //         amountIn = getAmountIn(_outputTokenAmount, _outputToken, _inputMax, baseTokenConversion, shortTokenConversion);
-    //         (amountIn, amountOut) = swapExactInput(_inputToken, _outputToken, amountIn);
+        // Revert to previous snapshot, as if swap never happend
+        vm.revertTo(id);
+    }
 
-    //     } catch (bytes memory data) {
-    //         amountIn = getAmountIn(_outputTokenAmount, _outputToken, _inputMax, baseTokenConversion, shortTokenConversion);
-    //         (amountIn, amountOut) = swapExactInput(_inputToken, _outputToken, amountIn);
-    //     }
+    /// @dev This is a test function for computing expected results
+    function getAmountIn(uint _positionReduction, address _shortToken, uint _backingBaseAmount, uint baseTokenConversion) internal view returns (uint) {
+        /// @dev Units: baseToken decimals
+        uint priceOfShortTokenInBase = _shortToken.pricedIn(BASE_TOKEN) / baseTokenConversion;  
 
-    //     // Revert to previous snapshot, as if swap never happend
-    //     vm.revertTo(id);
-    // }
+        /// @dev Units: baseToken decimals = (baseToken decimals * shortToken decimals) / shortToken decimals
+        uint positionReductionBase = (priceOfShortTokenInBase * _positionReduction) / (10 ** IwERC20(_shortToken).decimals());
 
-    // /// @dev This is a test function for computing expected results
-    // function getAmountIn(uint _positionReduction, address _shortToken, uint _backingBaseAmount, uint baseTokenConversion, uint shortTokenConversion) internal view returns (uint) {
-        
-    //     /// @dev Units: baseToken decimals
-    //     uint priceOfShortTokenInBase = _shortToken.pricedIn(BASE_TOKEN) / baseTokenConversion;     
-
-    //     /// @dev Units: baseToken decimals = (baseToken decimals * shortToken decimals) / shortToken decimals
-    //     uint positionReductionBase = (priceOfShortTokenInBase * _positionReduction) / shortTokenConversion;
-
-    //     if (positionReductionBase <= _backingBaseAmount) {
-    //         return positionReductionBase;
-    //     } else {
-    //         return _backingBaseAmount;
-    //     }
-    // }
+        if (positionReductionBase <= _backingBaseAmount) {
+            return positionReductionBase;
+        } else {
+            return _backingBaseAmount;
+        }
+    }
 }
 
 
@@ -250,27 +253,47 @@ contract TestChildSell is Test, ShaaveChildHelper {
         assert(success);
     }
 
-    // // TODO: For this, will need to do "expectations" with commented code above ^
-    // function test_reduecePosition_single_close_out() public {
-    //     /// @dev Pre-action assertions
-    //     ShaaveChild.PositionData[] memory preAccountingData = testShaaveChild.getAccountingData();
-    //     assertEq(preAccountingData.length, 1);
-    //     assertEq(preAccountingData[0].shortTokenAmountsSwapped.length, 1);
-    //     assertEq(preAccountingData[0].baseAmountsReceived.length, 1);
-    //     assertEq(preAccountingData[0].collateralAmounts.length, 1);
-    //     assertEq(preAccountingData[0].baseAmountsSwapped.length, 0);
-    //     assertEq(preAccountingData[0].shortTokenAmountsReceived.length, 0);
+    function test_reduecePosition_all_single() public {
+        /// @dev Pre-action assertions
+        ShaaveChild.PositionData[] memory preData = testShaaveChild.getAccountingData();
+        assertEq(preData.length, 1);
+        assertEq(preData[0].shortTokenAmountsSwapped.length, 1);
+        assertEq(preData[0].baseAmountsReceived.length, 1);
+        assertEq(preData[0].collateralAmounts.length, 1);
+        assertEq(preData[0].baseAmountsSwapped.length, 0);
+        assertEq(preData[0].shortTokenAmountsReceived.length, 0);
 
-    //     /// @dev Act
-    //     vm.warp(block.timestamp + 120);    // Trick Aave into thinking it's not a flash loan ;)
-    //     deal(SHORT_TOKEN, address(testShaaveChild), preAccountingData[0].shortTokenAmountsSwapped[0]);
-    //     bool success = testShaaveChild.reducePosition(SHORT_TOKEN, 100, true);
+        /// @dev Expectations
+        uint baseTokenConversion = 10 ** (18 - getAssetDecimals(BASE_TOKEN));
+        (uint amountIn, uint amountOut) = swapToShortToken(SHORT_TOKEN, BASE_TOKEN, preData[0].shortTokenAmountsSwapped[0], preData[0].backingBaseAmount, baseTokenConversion);
 
-    //     /// @dev Post-action data extraction
-        
+        /// @dev Act
+        vm.warp(block.timestamp + 120);    // Trick Aave into thinking it's not a flash loan ;)
+        bool success = testShaaveChild.reducePosition(SHORT_TOKEN, 100, true);
 
-    //     /// @dev Assertions
-    // }
+        /// @dev Post-action data extraction
+        ShaaveChild.PositionData[] memory postData = testShaaveChild.getAccountingData();
+
+        /// @dev Assertions
+        assert(success);
+        // Length
+        assertEq(postData.length, 1);
+        assertEq(postData[0].baseAmountsReceived.length, 1);
+        assertEq(postData[0].collateralAmounts.length, 1);
+        assertEq(postData[0].baseAmountsSwapped.length, 1);
+        assertEq(postData[0].shortTokenAmountsReceived.length, 1); 
+        assertEq(postData[0].shortTokenAmountsSwapped.length, 1);
+        // Values
+        // Esnure this data updated
+        assertEq(postData[0].baseAmountsSwapped[0], amountIn);
+        assertEq(postData[0].shortTokenAmountsReceived[0], amountOut);
+        assertEq(postData[0].backingBaseAmount, 0);
+        // Esnure this data stayed the same
+        assertEq(postData[0].shortTokenAmountsSwapped[0], preData[0].shortTokenAmountsSwapped[0]);
+        assertEq(postData[0].baseAmountsReceived[0], preData[0].baseAmountsReceived[0]);
+        assertEq(postData[0].collateralAmounts[0], preData[0].collateralAmounts[0]);
+        assertEq(postData[0].shortTokenAddress, preData[0].shortTokenAddress);
+    }
 
     function test_reduecePosition_single_close_out_with_profit() public {
         /// @dev Pre-action assertions
@@ -315,12 +338,13 @@ contract TestChildSell is Test, ShaaveChildHelper {
         assertEq(postAccountingData[0].baseAmountsSwapped[0], UNISWAP_AMOUNT_IN_PROFIT);
         assertEq(postAccountingData[0].shortTokenAmountsReceived[0], preAccountingData[0].shortTokenAmountsSwapped[0]);
         assertEq(postAccountingData[0].backingBaseAmount, 0);
+        assertEq(postAccountingData[0].hasDebt, false);
         // Esnure this data stayed the same
         assertEq(postAccountingData[0].shortTokenAmountsSwapped[0], preAccountingData[0].shortTokenAmountsSwapped[0]);
         assertEq(postAccountingData[0].baseAmountsReceived[0], preAccountingData[0].baseAmountsReceived[0]);
         assertEq(postAccountingData[0].collateralAmounts[0], preAccountingData[0].collateralAmounts[0]);
         assertEq(postAccountingData[0].shortTokenAddress, preAccountingData[0].shortTokenAddress);
-        assertEq(postAccountingData[0].hasDebt, false);
+        
 
         // Enure correct resulting token balances
         assertEq(debtTokenBalance, 0);

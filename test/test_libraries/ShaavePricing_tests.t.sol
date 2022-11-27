@@ -14,12 +14,6 @@ contract Test_ShaavePricing is Test {
     using ShaavePricing for address;
     using Math for uint;
 
-    /*******************************************************************************
-    **
-    **  pricedIn tests
-    **
-    *******************************************************************************/
-
     function test_pricedIn() public {
         // Expectations
         uint inputTokenPriceUSD = IAaveOracle(AAVE_ORACLE).getAssetPrice(SHORT_TOKEN);

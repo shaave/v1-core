@@ -23,7 +23,7 @@ library ReturnCapital {
     using ShaavePricing for address;
 
     address constant aavePoolAddress = 0x794a61358D6845594F94dc1DB02A252b5b4814aD;
-    uint constant WITHDRAWAL_BUFFER = 1e15;
+    uint constant WITHDRAWAL_BUFFER = 1e15; // TODO: cut this in half?
 
     /** 
     * @dev This function is used to calculate a trade's gains (in Wei).
@@ -71,16 +71,18 @@ library ReturnCapital {
 
         (uint totalCollateralBase, uint totalDebtBase, , , , ) = IPool(aavePoolAddress).getUserAccountData(_childAddress);                     // Multiply by 1e10 to get Wei
 
-        uint loanBackingCollateral = (totalDebtBase.dividedBy(_shaaveLTV, 0) * 100) * 1e10;                          // Wei
+        uint loanBackingCollateral = ((totalDebtBase / _shaaveLTV) * 100);                          // Wei
 
-        if (totalCollateralBase * 1e10 > loanBackingCollateral){
-            withdrawalAmount = ((totalCollateralBase - (totalDebtBase.dividedBy(_shaaveLTV, 0) * 100)) * 1e10) - WITHDRAWAL_BUFFER;      // Wei
+        console.log("loanBackingCollateral:", loanBackingCollateral);
+
+        if (totalCollateralBase > loanBackingCollateral){
+            withdrawalAmount = ((totalCollateralBase - loanBackingCollateral) * 1e10) - WITHDRAWAL_BUFFER;      // Wei
         } else {
             withdrawalAmount = 0;    // Wei
         }
 
-        console.log("[getMaxWithdrawal]: totalCollateralBase:", totalCollateralBase);
-        console.log("[getMaxWithdrawal]: totalDebtBase:", totalDebtBase);
-        console.log("[getMaxWithdrawal]: withdrawalAmount:", withdrawalAmount);
+        console.log("withdrawalAmount:", withdrawalAmount);
+        console.log("totalCollateralBase:", totalCollateralBase);
+        console.log("totalDebtBase:", totalDebtBase);
     }
 }
