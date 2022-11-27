@@ -13,5 +13,6 @@ uint24 constant POOL_FEE = 3000;
 uint constant TEST_COLLATERAL_AMOUNT = 1e6;
 uint constant TEST_BASE_LTV = 72;
 uint constant UNISWAP_AMOUNT_IN_PROFIT = (((TEST_COLLATERAL_AMOUNT * TEST_BASE_LTV) / 100) * 50) / 100; // Max borrow divided by 2
+uint constant UNISWAP_AMOUNT_OUT_LOSSES_FACTOR = 2;
 uint constant WITHDRAWAL_BUFFER = 1e15;
 

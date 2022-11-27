@@ -137,7 +137,7 @@ contract ShaaveChild is Ownable {
         uint _percentageReduction,
         bool _withdrawCollateral
     ) public userOnly returns (bool) {
-        require(_percentageReduction <= 100, "Percentage cannot exceed 100.");
+        require(_percentageReduction > 0 && _percentageReduction <= 100, "Invalid percentage.");
 
         // 1. Calculate the amount of short tokens the short position will be reduced by
         uint positionReduction = (getOutstandingDebt(_shortToken) * _percentageReduction) / 100;   // Uints: short token decimals
@@ -146,7 +146,7 @@ contract ShaaveChild is Ownable {
         (uint amountIn, uint amountOut) = swapToShortToken(_shortToken, baseToken, positionReduction, userPositions[_shortToken].backingBaseAmount);
 
         // 3. Repay Aave loan with the amount of short token received from Uniswap
-        IERC20(_shortToken).approve(AAVE_POOL, amountOut);        
+        IERC20(_shortToken).approve(AAVE_POOL, amountOut);
         IPool(AAVE_POOL).repay(_shortToken, amountOut, 2, address(this));
 
         /// @dev shortTokenConversion = (10 ** (18 - IwERC20(_shortToken).decimals()))
@@ -178,7 +178,6 @@ contract ShaaveChild is Ownable {
             userPositions[_shortToken].hasDebt = false;
         }
         
-
         return true;
     }
 
@@ -263,12 +262,10 @@ contract ShaaveChild is Ownable {
             });
         
         try SWAP_ROUTER.exactOutputSingle(params) returns (uint returnedAmountIn) {
-
             emit SwapSuccess(msg.sender, _inputToken, returnedAmountIn, _outputToken, _outputTokenAmount);
             (amountIn, amountOut) = (returnedAmountIn, _outputTokenAmount);
 
         } catch Error(string memory message) {
-            
             emit ErrorString(message, "Uniswap's exactOutputSingle() failed. Trying exactInputSingle() instead.");
             amountIn = getAmountIn(_outputTokenAmount, _outputToken, _inputMax);
             (amountIn, amountOut) = swapExactInput(_inputToken, _outputToken, amountIn);
