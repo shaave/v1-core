@@ -4,6 +4,7 @@ pragma solidity ^0.8.10;
 
 // External Packages
 import "@aave-protocol/interfaces/IPool.sol";
+import "@aave-protocol/interfaces/IPoolDataProvider.sol";
 import "@aave-protocol/interfaces/IAaveOracle.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "forge-std/console.sol";
@@ -28,6 +29,7 @@ contract ShaaveParent is Ownable {
 
     // -- Aave Variables --
     address public constant AAVE_POOL = 0x794a61358D6845594F94dc1DB02A252b5b4814aD;
+    address public constant AAVE_DATA_PROVIDER = 0x69FA688f1Dc47d4B5d8029D5a35FB7a548310654;
       
     // -- Events --
     event CollateralSuccess(address user, address baseTokenAddress, uint amount);
@@ -47,9 +49,9 @@ contract ShaaveParent is Ownable {
         address _baseToken,
         uint _baseTokenAmount
     ) public returns (bool) {
-        address[] memory reserves = IPool(AAVE_POOL).getReservesList();
+        (,,,,,bool canBeCollateral,,,,) = IPoolDataProvider(AAVE_DATA_PROVIDER).getReserveConfigurationData(_baseToken);
 
-        require(reserves.includes(_baseToken), "Base token not supported.");
+        require(canBeCollateral, "Base token not supported.");
 
         // 1. Create new user's child contract, if the user does not already have one
         address child = userContracts[msg.sender][_baseToken];
