@@ -5,7 +5,7 @@ import "forge-std/Test.sol";
 import "../../src/contracts/libraries/ReturnCapital.sol";
 import "../../src/contracts/libraries/ShaavePricing.sol";
 import "../../src/contracts/libraries/Math.sol";
-import "../../src/contracts/ShaaveChild.sol";
+import "../../src/contracts/Child.sol";
 import "../../src/interfaces/IwERC20.sol";
 import "../common/constants.t.sol";
 
@@ -97,7 +97,7 @@ contract WithdrawalHelper is Test {
 contract TestWithdrawals is Test, ReturnCapitalHelper, WithdrawalHelper {
     using AddressArray for address[];
 
-    ShaaveChild[] children;
+    Child[] children;
     uint[] shaaveLTVs;
     // MAI, USDT, EURS, agEUR, jEUR
     address[] bannedCollateral = [0xa3Fa99A148fA48D14Ed51d610c367C61876997F1, 0xc2132D05D31c914a87C6611C10748AEb04B58e8F, 0xE111178A87A3BFf0c8d18DECBa5798827539Ae99, 0xE0B52e49357Fd4DAf2c15e02058DCE6BC0057db4, 0x4e3Decbb3645551B8A19f0eA1678079FCB33fB4c];
@@ -111,7 +111,7 @@ contract TestWithdrawals is Test, ReturnCapitalHelper, WithdrawalHelper {
                 uint shaaveLTV = uint(getShaaveLTV(reserves[i]));
                 if (shaaveLTV > 0) {
                     shaaveLTVs.push(shaaveLTV);
-                    children.push(new ShaaveChild(address(this), reserves[i], assetDecimals, shaaveLTV));
+                    children.push(new Child(address(this), reserves[i], assetDecimals, shaaveLTV));
                 }
             }
             

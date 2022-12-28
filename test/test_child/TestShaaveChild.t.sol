@@ -12,10 +12,10 @@ import "@aave-protocol/interfaces/IPool.sol";
 import "@aave-protocol/interfaces/IPoolDataProvider.sol";
 
 // Local file imports
-import "../src/contracts/ShaaveChild.sol";
-import "./mocks/MockUniswap.t.sol";
-import "./common/constants.t.sol";
-import "../src/interfaces/IwERC20.sol";
+import "../../src/contracts/Child.sol";
+import "../../src/interfaces/IwERC20.sol";
+import ".././mocks/MockUniswap.t.sol";
+import "../common/constants.t.sol";
 
 
 /* TODO: The following still needs to be tested here:
@@ -57,10 +57,9 @@ contract UniswapHelper is Test {
                 sqrtPriceLimitX96: 0
             });
 
-        console.log("Balance of in token:", IERC20(_inputToken).balanceOf(address(this)));
 
         (amountIn, amountOut) = (_tokenInAmount, SWAP_ROUTER.exactInputSingle(params));
-        console.log("amountOut:", amountOut);
+
         // Revert to previous snapshot, as if swap never happend
         vm.revertTo(id);
     }
@@ -207,7 +206,7 @@ contract TestChildShort is Test, ShaaveChildHelper {
     using AddressArray for address[];
 
     // Contracts
-    ShaaveChild testShaaveChild;
+    Child testShaaveChild;
 
     // Test Variables
     // Polygon banned list
@@ -220,7 +219,7 @@ contract TestChildShort is Test, ShaaveChildHelper {
 
     function setUp() public {
         // Instantiate Child
-        testShaaveChild = new ShaaveChild(address(this), BASE_TOKEN, getAssetDecimals(BASE_TOKEN), getShaaveLTV(BASE_TOKEN));
+        testShaaveChild = new Child(address(this), BASE_TOKEN, getAssetDecimals(BASE_TOKEN), getShaaveLTV(BASE_TOKEN));
     }
 
     // All collaterals; shorting BTC
@@ -235,7 +234,7 @@ contract TestChildShort is Test, ShaaveChildHelper {
             if (!BANNED_COLLATERAL.includes(reserves[i])) {
 
                 // Instantiate Child
-                testShaaveChild = new ShaaveChild(address(this), testBaseToken, getAssetDecimals(testBaseToken), getShaaveLTV(testBaseToken));
+                testShaaveChild = new Child(address(this), testBaseToken, getAssetDecimals(testBaseToken), getShaaveLTV(testBaseToken));
 
                 // Setup
                 uint collateralAmount = (10 ** IwERC20(reserves[i]).decimals()) * amountMultiplier; // 1 uint in correct decimals
@@ -261,7 +260,7 @@ contract TestChildShort is Test, ShaaveChildHelper {
                     testShaaveChild.short(SHORT_TOKEN, collateralAmount, address(this));
 
                     // Post-action data extraction
-                    ShaaveChild.PositionData[] memory accountingData = testShaaveChild.getAccountingData();
+                    Child.PositionData[] memory accountingData = testShaaveChild.getAccountingData();
                     (uint aTokenBalance, uint debtTokenBalance, uint baseTokenBalance, uint userBaseBalance) = getTokenData(address(testShaaveChild), testBaseToken);
                     
                     // Assertions
@@ -304,7 +303,7 @@ contract TestChildShort is Test, ShaaveChildHelper {
 contract TestChildSellAll is Test, ShaaveChildHelper {
 
     // Contracts
-    ShaaveChild testShaaveChild;
+    Child testShaaveChild;
 
     // Events
     event SwapSuccess(address user, address tokenInAddress, uint tokenInAmount, address tokenOutAddress, uint tokenOutAmount);
@@ -312,7 +311,7 @@ contract TestChildSellAll is Test, ShaaveChildHelper {
     
     function setUp() public {
         // Instantiate Child
-        testShaaveChild = new ShaaveChild(address(this), BASE_TOKEN, getAssetDecimals(BASE_TOKEN), getShaaveLTV(BASE_TOKEN));
+        testShaaveChild = new Child(address(this), BASE_TOKEN, getAssetDecimals(BASE_TOKEN), getShaaveLTV(BASE_TOKEN));
 
         // Add short position, so we can sell
         deal(BASE_TOKEN, address(this), TEST_COLLATERAL_AMOUNT);
@@ -322,7 +321,7 @@ contract TestChildSellAll is Test, ShaaveChildHelper {
         assert(success);
 
         // Post short assertions
-        ShaaveChild.PositionData[] memory preAccountingData = testShaaveChild.getAccountingData();
+        Child.PositionData[] memory preAccountingData = testShaaveChild.getAccountingData();
         assertEq(preAccountingData.length, 1);
         assertEq(preAccountingData[0].shortTokenAmountsSwapped.length, 1);
         assertEq(preAccountingData[0].baseAmountsReceived.length, 1);
@@ -333,7 +332,7 @@ contract TestChildSellAll is Test, ShaaveChildHelper {
 
     function test_reduecePosition_all_single() public {
         /// @dev Pre-action data extraction
-        ShaaveChild.PositionData[] memory preAccountingData = testShaaveChild.getAccountingData();
+        Child.PositionData[] memory preAccountingData = testShaaveChild.getAccountingData();
 
         /// @dev Expectations
         uint baseTokenConversion = 10 ** (18 - getAssetDecimals(BASE_TOKEN));
@@ -346,7 +345,7 @@ contract TestChildSellAll is Test, ShaaveChildHelper {
         assert(testShaaveChild.reducePosition(SHORT_TOKEN, 100, true));
 
         /// @dev Post-action data extraction
-        ShaaveChild.PositionData[] memory postAccountingData = testShaaveChild.getAccountingData();
+        Child.PositionData[] memory postAccountingData = testShaaveChild.getAccountingData();
         (uint aTokenBalance, uint debtTokenBalance, uint baseTokenBalance, uint userBaseBalance) = getTokenData(address(testShaaveChild), BASE_TOKEN);
 
         /// @dev Assertions
@@ -381,7 +380,7 @@ contract TestChildSellAll is Test, ShaaveChildHelper {
 
     function test_reduecePosition_single_close_out_with_profit() public {
         /// @dev Pre-action assertions
-        ShaaveChild.PositionData[] memory preAccountingData = testShaaveChild.getAccountingData();
+        Child.PositionData[] memory preAccountingData = testShaaveChild.getAccountingData();
 
         /// @dev Expectations
         vm.expectEmit(true, true, true, true, address(testShaaveChild));
@@ -397,7 +396,7 @@ contract TestChildSellAll is Test, ShaaveChildHelper {
         bool success = testShaaveChild.reducePosition(SHORT_TOKEN, 100, true);
 
         /// @dev Post-action data extraction
-        ShaaveChild.PositionData[] memory postAccountingData = testShaaveChild.getAccountingData();
+        Child.PositionData[] memory postAccountingData = testShaaveChild.getAccountingData();
         (uint aTokenBalance, uint debtTokenBalance, uint baseTokenBalance, uint userBaseBalance) = getTokenData(address(testShaaveChild), BASE_TOKEN);
 
         /// @dev Assertions
@@ -431,7 +430,7 @@ contract TestChildSellAll is Test, ShaaveChildHelper {
 
     function test_reduecePosition_single_close_out_losses() public {
         /// @dev Pre-action assertions
-        ShaaveChild.PositionData[] memory preAccountingData = testShaaveChild.getAccountingData();
+        Child.PositionData[] memory preAccountingData = testShaaveChild.getAccountingData();
     
         /// @dev Expectations
         uint neededAmountOut = preAccountingData[0].shortTokenAmountsSwapped[0] / UNISWAP_AMOUNT_OUT_LOSSES_FACTOR;
@@ -450,7 +449,7 @@ contract TestChildSellAll is Test, ShaaveChildHelper {
         bool success = testShaaveChild.reducePosition(SHORT_TOKEN, 100, true);
 
         /// @dev Post-action data extraction
-        ShaaveChild.PositionData[] memory postAccountingData = testShaaveChild.getAccountingData();
+        Child.PositionData[] memory postAccountingData = testShaaveChild.getAccountingData();
         (uint aTokenBalance, uint debtTokenBalance, uint baseTokenBalance, uint userBaseBalance) = getTokenData(address(testShaaveChild), BASE_TOKEN);
 
         /// @dev Assertions
@@ -498,14 +497,14 @@ contract TestChildSellAll is Test, ShaaveChildHelper {
 contract TestChildSellSome is Test, ShaaveChildHelper {
 
     // Contracts
-    ShaaveChild testShaaveChild;
+    Child testShaaveChild;
 
     // Events
     event SwapSuccess(address user, address tokenInAddress, uint tokenInAmount, address tokenOutAddress, uint tokenOutAmount);
 
     function setUp() public {
         // Instantiate Child
-        testShaaveChild = new ShaaveChild(address(this), BASE_TOKEN, getAssetDecimals(BASE_TOKEN), getShaaveLTV(BASE_TOKEN));
+        testShaaveChild = new Child(address(this), BASE_TOKEN, getAssetDecimals(BASE_TOKEN), getShaaveLTV(BASE_TOKEN));
 
         // Add short position, so we can sell
         deal(BASE_TOKEN, address(this), TEST_COLLATERAL_AMOUNT);
@@ -514,7 +513,7 @@ contract TestChildSellSome is Test, ShaaveChildHelper {
         assert(testShaaveChild.short(SHORT_TOKEN, TEST_COLLATERAL_AMOUNT, address(this)));
 
         // Post short assertions
-        ShaaveChild.PositionData[] memory preAccountingData = testShaaveChild.getAccountingData();
+        Child.PositionData[] memory preAccountingData = testShaaveChild.getAccountingData();
         assertEq(preAccountingData.length, 1);
         assertEq(preAccountingData[0].shortTokenAmountsSwapped.length, 1);
         assertEq(preAccountingData[0].baseAmountsReceived.length, 1);
@@ -528,7 +527,7 @@ contract TestChildSellSome is Test, ShaaveChildHelper {
         vm.assume(reductionPercentage > 0 && reductionPercentage <= 100);
 
         /// @dev Pre-action data extraction
-        ShaaveChild.PositionData[] memory preAccountingData = testShaaveChild.getAccountingData();
+        Child.PositionData[] memory preAccountingData = testShaaveChild.getAccountingData();
         (uint pre_aTokenBalance, uint pre_debtTokenBalance, , ) = getTokenData(address(testShaaveChild), BASE_TOKEN);
 
         /// @dev Expectations
@@ -545,7 +544,7 @@ contract TestChildSellSome is Test, ShaaveChildHelper {
         assert(testShaaveChild.reducePosition(SHORT_TOKEN, reductionPercentage, true));
 
         /// @dev Post-action data extraction
-        ShaaveChild.PositionData[] memory postAccountingData = testShaaveChild.getAccountingData();
+        Child.PositionData[] memory postAccountingData = testShaaveChild.getAccountingData();
         (uint aTokenBalance, uint debtTokenBalance, , ) = getTokenData(address(testShaaveChild), BASE_TOKEN);
         
 

@@ -1,4 +1,3 @@
-// contracts/ShaaveParent.sol
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.10;
 
@@ -10,19 +9,18 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "forge-std/console.sol";
 
 // Local
-import "../interfaces/IShaaveChild.sol";
-import "./ShaaveChild.sol";
+import "../interfaces/IChild.sol";
+import "./Child.sol";
 import "./libraries/ShaavePricing.sol";
 import "../interfaces/IwERC20.sol";
 
-
 /// @title shAave parent contract, which orchestrates children contracts
-contract ShaaveParent is Ownable {
+contract Parent is Ownable {
     using ShaavePricing for address;
     using AddressArray for address[];
     using Math for uint;
 
-    // -- ShaaveParent Variables --
+    // -- Parent Variables --
     mapping(address => mapping(address => address)) public userContracts;
     address[] private childContracts;
     uint public ltvBuffer;
@@ -59,16 +57,17 @@ contract ShaaveParent is Ownable {
         if (child == address(0)) {
             uint shaaveLTV = getShaaveLTV(_baseToken);
             uint decimals = IwERC20(_shortToken).decimals();
-            child = address(new ShaaveChild(msg.sender, _baseToken, decimals, shaaveLTV));
+            child = address(new Child(msg.sender, _baseToken, decimals, shaaveLTV));
             userContracts[msg.sender][_baseToken] = child;
             childContracts.push(child);
         }
 
-        // 2. Supply collateral on behalf of user's child contract        
+        // 2. Supply collateral on behalf of user's child contract   
+        IERC20(_baseToken).transferFrom(msg.sender, address(this), _baseTokenAmount);     
         supplyOnBehalfOfChild(child, _baseToken, _baseTokenAmount);
 
         // 3. Finish shorting process on user's child contract
-        IShaaveChild(child).short(_shortToken, _baseTokenAmount, msg.sender);
+        IChild(child).short(_shortToken, _baseTokenAmount, msg.sender);
         return true;
     }
 

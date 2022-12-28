@@ -2,7 +2,7 @@
 pragma solidity ^0.8.10;
 
 
-interface IShaaveParent {
+interface IParent {
 
     function addShortPosition(
         address _shortTokenAddress,

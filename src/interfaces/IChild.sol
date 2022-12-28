@@ -2,7 +2,7 @@
 pragma solidity ^0.8.10;
 
 
-interface IShaaveChild {
+interface IChild {
 
     function short(
         address _shortTokenAddress,

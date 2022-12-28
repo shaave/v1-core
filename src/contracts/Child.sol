@@ -1,4 +1,3 @@
-// contracts/ShaaveChild.sol
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.10;
 pragma abicoder v2;
@@ -18,13 +17,13 @@ import "@uniswap-v3-periphery/libraries/TransferHelper.sol";
 
 import "forge-std/console.sol";
 
-/// @title shAave child contract, owned by the ShaaveParent
-contract ShaaveChild is Ownable {
+/// @title shAave child contract, owned by the Parent
+contract Child is Ownable {
     using AddressArray for address[];
     using ShaavePricing for address;
     using Math for uint;
 
-    // -- ShaaveChild Variables --
+    // -- Child Variables --
     struct PositionData {
         // -- Arrays related to adding to a position --
         uint[] shortTokenAmountsSwapped;
@@ -394,7 +393,6 @@ contract ShaaveChild is Ownable {
         require(msg.sender == user, "Unauthorized.");
         _;
     }
-
 }
 
 

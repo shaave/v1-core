@@ -2,8 +2,8 @@
 pragma solidity ^0.8.10;
 
 // Local Imports
-import "../src/contracts/ShaaveParent.sol";
-import "../src/interfaces/IShaaveChild.sol";
+import "../src/contracts/Parent.sol";
+import "../src/interfaces/IChild.sol";
 import "../src/interfaces/IwERC20.sol";
 
 import "./common/constants.t.sol";
@@ -49,13 +49,13 @@ contract ShaaveParentHelper is Test {
 contract TestShaaveParentData is Test, ShaaveParentHelper {
 
     // Contracts
-    ShaaveParent shaaveParent;
+    Parent shaaveParent;
 
     // Test Events
     event CollateralSuccess(address user, address testBaseTokenAddress , uint amount);
 
     function setUp() public {
-        shaaveParent = new ShaaveParent(10);
+        shaaveParent = new Parent(10);
     }
 
     function test_getNeededCollateralAmount(uint amountMultiplier) public {
