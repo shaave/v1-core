@@ -3,14 +3,14 @@ pragma solidity ^0.8.10;
 
 // Local imports
 import "forge-std/Test.sol";
-import "../../src/contracts/libraries/Math.sol";
-import "../../src/contracts/libraries/ShaavePricing.sol";
+import "../../src/libraries/Math.sol";
+import "../../src/libraries/ShaavePricing.sol";
 import "../common/constants.t.sol";
 
 // External package imports
 import "@aave-protocol/interfaces/IAaveOracle.sol";
 
-contract Test_ShaavePricing is Test {
+contract ShaavePricingTest is Test {
     using ShaavePricing for address;
     using Math for uint;
 

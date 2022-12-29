@@ -2,18 +2,12 @@
 pragma solidity ^0.8.10;
 
 import "forge-std/Test.sol";
-import "../../src/contracts/libraries/AddressArray.sol";
+import "../../src/libraries/AddressArray.sol";
 
-contract Test_AddressArray is Test {
+contract AddressArrayTest is Test {
     using AddressArray for address[];
     address[] private testArray;
     address[] private expectedArray;
-
-    /*******************************************************************************
-    **
-    **  removeAddress tests
-    **
-    *******************************************************************************/
 
     function test_removeAddress_addressFound() public {
 
@@ -55,12 +49,6 @@ contract Test_AddressArray is Test {
         // Assert
         assertEq(testArray, expectedArray);
     }
-
-    /*******************************************************************************
-    **
-    **  includes tests
-    **
-    *******************************************************************************/
 
     function test_includes_addressIncluded() public {
 

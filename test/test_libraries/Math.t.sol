@@ -2,9 +2,9 @@
 pragma solidity ^0.8.10;
 
 import "forge-std/Test.sol";
-import "../../src/contracts/libraries/Math.sol";
+import "../../src/libraries/Math.sol";
 
-contract Test_Math is Test {
+contract MathTest is Test {
     using Math for uint;
 
     function test_dividedBy() public {

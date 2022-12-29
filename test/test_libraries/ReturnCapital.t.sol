@@ -2,11 +2,11 @@
 pragma solidity ^0.8.10;
 
 import "forge-std/Test.sol";
-import "../../src/contracts/libraries/ReturnCapital.sol";
-import "../../src/contracts/libraries/ShaavePricing.sol";
-import "../../src/contracts/libraries/Math.sol";
-import "../../src/contracts/Child.sol";
-import "../../src/interfaces/IwERC20.sol";
+import "../../src/libraries/ReturnCapital.sol";
+import "../../src/libraries/ShaavePricing.sol";
+import "../../src/libraries/Math.sol";
+import "../../src/child/Child.sol";
+import "../../src/interfaces/IERC20Metadata.sol";
 import "../common/constants.t.sol";
 
 // External package imports
@@ -31,7 +31,7 @@ contract ReturnCapitalHelper {
 }
 
 
-contract TestGains is Test, ReturnCapitalHelper {
+contract GainsTest is Test, ReturnCapitalHelper {
     using Math for uint;
     using ShaavePricing for address;
     
@@ -87,27 +87,27 @@ contract WithdrawalHelper is Test {
     }
 
     function getBorrowAmount(address baseToken, uint baseTokenAmount, uint shaaveLTV, uint baseTokenConversion) internal view returns (uint) {
-        uint shortTokenConversion = (10 ** (18 - IwERC20(SHORT_TOKEN).decimals()));
+        uint shortTokenConversion = (10 ** (18 - IERC20Metadata(SHORT_TOKEN).decimals()));
         uint priceOfShortTokenInBase = SHORT_TOKEN.pricedIn(baseToken);     // Wei
         return ((baseTokenAmount * baseTokenConversion * shaaveLTV) / 100).dividedBy(priceOfShortTokenInBase, 18) / shortTokenConversion;
     }
 }
 
 
-contract TestWithdrawals is Test, ReturnCapitalHelper, WithdrawalHelper {
+contract WithdrawalTest is Test, ReturnCapitalHelper, WithdrawalHelper {
     using AddressArray for address[];
 
     Child[] children;
     uint[] shaaveLTVs;
     // MAI, USDT, EURS, agEUR, jEUR
-    address[] bannedCollateral = [0xa3Fa99A148fA48D14Ed51d610c367C61876997F1, 0xc2132D05D31c914a87C6611C10748AEb04B58e8F, 0xE111178A87A3BFf0c8d18DECBa5798827539Ae99, 0xE0B52e49357Fd4DAf2c15e02058DCE6BC0057db4, 0x4e3Decbb3645551B8A19f0eA1678079FCB33fB4c];
+    address[] BANNED_COLLATERAL = [0xa3Fa99A148fA48D14Ed51d610c367C61876997F1, 0xc2132D05D31c914a87C6611C10748AEb04B58e8F, 0xE111178A87A3BFf0c8d18DECBa5798827539Ae99, 0xE0B52e49357Fd4DAf2c15e02058DCE6BC0057db4, 0x4e3Decbb3645551B8A19f0eA1678079FCB33fB4c, 0x172370d5Cd63279eFa6d502DAB29171933a610AF, 0x0b3F868E0BE5597D5DB7fEB59E1CADBb0fdDa50a, 0x385Eeac5cB85A38A9a07A70c73e0a3271CfB54A7, 0x9a71012B13CA4d3D0Cdc72A177DF3ef03b0E76A3, 0x85955046DF4668e1DD369D2DE9f3AEB98DD2A369, 0x3A58a54C066FdC0f2D55FC9C89F0415C92eBf3C4, 0xfa68FB4628DFF1028CFEc22b4162FCcd0d45efb6];
 
     function setUp() public {
         address[] memory reserves = IPool(AAVE_POOL).getReservesList();
 
         for (uint i; i < reserves.length; i++) {
-            if (!bannedCollateral.includes(reserves[i])) {
-                uint8 assetDecimals =  IwERC20(reserves[i]).decimals();
+            if (!BANNED_COLLATERAL.includes(reserves[i])) {
+                uint8 assetDecimals =  IERC20Metadata(reserves[i]).decimals();
                 uint shaaveLTV = uint(getShaaveLTV(reserves[i]));
                 if (shaaveLTV > 0) {
                     shaaveLTVs.push(shaaveLTV);

@@ -7,12 +7,14 @@ import "@aave-protocol/interfaces/IPoolDataProvider.sol";
 import "@aave-protocol/interfaces/IAaveOracle.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "forge-std/console.sol";
+import "solmate/utils/SafeTransferLib.sol";
 
 // Local
 import "../interfaces/IChild.sol";
-import "./Child.sol";
-import "./libraries/ShaavePricing.sol";
-import "../interfaces/IwERC20.sol";
+import "../interfaces/IERC20Metadata.sol";
+import "../child/Child.sol";
+import "../libraries/ShaavePricing.sol";
+
 
 /// @title shAave parent contract, which orchestrates children contracts
 contract Parent is Ownable {
@@ -47,6 +49,7 @@ contract Parent is Ownable {
         address _baseToken,
         uint _baseTokenAmount
     ) public returns (bool) {
+        // TODO: make this list based on baned list
         (,,,,,bool canBeCollateral,,,,) = IPoolDataProvider(AAVE_DATA_PROVIDER).getReserveConfigurationData(_baseToken);
 
         require(canBeCollateral, "Base token not supported.");
@@ -56,38 +59,17 @@ contract Parent is Ownable {
 
         if (child == address(0)) {
             uint shaaveLTV = getShaaveLTV(_baseToken);
-            uint decimals = IwERC20(_shortToken).decimals();
+            uint decimals = IERC20Metadata(_shortToken).decimals();
             child = address(new Child(msg.sender, _baseToken, decimals, shaaveLTV));
             userContracts[msg.sender][_baseToken] = child;
             childContracts.push(child);
         }
 
-        // 2. Supply collateral on behalf of user's child contract   
-        IERC20(_baseToken).transferFrom(msg.sender, address(this), _baseTokenAmount);     
-        supplyOnBehalfOfChild(child, _baseToken, _baseTokenAmount);
+        // 2. Foward base token to child     
+        SafeTransferLib.safeTransferFrom(ERC20(_baseToken), msg.sender, child, _baseTokenAmount);
 
         // 3. Finish shorting process on user's child contract
         IChild(child).short(_shortToken, _baseTokenAmount, msg.sender);
-        return true;
-    }
-
-    /** 
-    * @dev Used to supply collateral on a user's child contract's behalf.
-    * @param _userChildContract The address of the user's child contract's behalf.
-    * @param _baseToken The address of the token that's used for collateral.
-    * @param _baseTokenAmount The amount of collateral that will be used for adding to a short position.
-    **/
-    function supplyOnBehalfOfChild(address _userChildContract, address _baseToken, uint _baseTokenAmount) private returns (bool) {
-        // 1. Transfer the user's collateral amount to this contract, so it can supply collateral to Aave
-        IERC20(_baseToken).transferFrom(msg.sender, address(this), _baseTokenAmount);
-        // 2. Approve Aave to handle collateral on this contract's behalf
-        IERC20(_baseToken).approve(AAVE_POOL, _baseTokenAmount);
-
-        // 3. Supply collateral to Aave, on the user's child contract's behalf
-        IPool(AAVE_POOL).supply(_baseToken, _baseTokenAmount, _userChildContract, 0);
-
-        emit CollateralSuccess(msg.sender, _baseToken, _baseTokenAmount);
-
         return true;
     }
 
@@ -103,8 +85,8 @@ contract Parent is Ownable {
         address _baseToken,
         uint _shortTokenAmount
     ) public view returns (uint) {
-        uint shortTokenDecimals = IwERC20(_shortToken).decimals();
-        uint baseTokenDecimals = IwERC20(_baseToken).decimals();
+        uint shortTokenDecimals = IERC20Metadata(_shortToken).decimals();
+        uint baseTokenDecimals = IERC20Metadata(_baseToken).decimals();
         uint baseTokenConversion = 10 ** (18 - baseTokenDecimals);
 
         uint priceOfShortTokenInBase = _shortToken.pricedIn(_baseToken) / baseTokenConversion;                        // Units: base token decimals               

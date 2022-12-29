@@ -12,8 +12,8 @@ import "@aave-protocol/interfaces/IPool.sol";
 import "@aave-protocol/interfaces/IPoolDataProvider.sol";
 
 // Local file imports
-import "../../src/contracts/Child.sol";
-import "../../src/interfaces/IwERC20.sol";
+import "../../src/child/Child.sol";
+import "../../src/interfaces/IERC20Metadata.sol";
 import ".././mocks/MockUniswap.t.sol";
 import "../common/constants.t.sol";
 
@@ -111,7 +111,7 @@ contract UniswapHelper is Test {
         uint priceOfShortTokenInBase = _shortToken.pricedIn(BASE_TOKEN) / baseTokenConversion;  
 
         /// @dev Units: baseToken decimals = (baseToken decimals * shortToken decimals) / shortToken decimals
-        uint positionReductionBase = (priceOfShortTokenInBase * _positionReduction) / (10 ** IwERC20(_shortToken).decimals());
+        uint positionReductionBase = (priceOfShortTokenInBase * _positionReduction) / (10 ** IERC20Metadata(_shortToken).decimals());
 
         if (positionReductionBase <= _backingBaseAmount) {
             return positionReductionBase;
@@ -128,7 +128,6 @@ contract ShaaveChildHelper is Test, UniswapHelper {
     
     // Variables
     uint constant public LTV_BUFFER = 10;
-    address constant BASE_TOKEN = 0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063;
 
     function getShaaveLTV(address _baseToken) internal view returns (uint) {
         uint bitMap = IPool(AAVE_POOL).getReserveData(_baseToken).configuration.data;
@@ -136,15 +135,10 @@ contract ShaaveChildHelper is Test, UniswapHelper {
         return aaveLTV - LTV_BUFFER;
     }
 
-    function getAssetDecimals(address _baseToken) internal view returns (uint) {
-        uint bitMap = IPool(AAVE_POOL).getReserveData(_baseToken).configuration.data;
-        return (((1 << 8) - 1) & (bitMap >> (49-1)));   // bit 48-55: Decimals
-    }
-
     function getBorrowAmount(uint _testCollateralAmount, address _baseToken) internal view returns (uint) {
         console.log("test Collateral amount:", _testCollateralAmount);
-        uint baseTokenConversion = 10 ** (18 - getAssetDecimals(_baseToken));
-        uint shortTokenConversion = 10 ** (18 - getAssetDecimals(SHORT_TOKEN));
+        uint baseTokenConversion = 10 ** (18 - IERC20Metadata(_baseToken).decimals());
+        uint shortTokenConversion = 10 ** (18 - IERC20Metadata(SHORT_TOKEN).decimals());
         uint priceOfShortTokenInBase = SHORT_TOKEN.pricedIn(_baseToken);
         uint shaaveLTV = getShaaveLTV(_baseToken);
         return ((_testCollateralAmount * baseTokenConversion * shaaveLTV) / 100).dividedBy(priceOfShortTokenInBase, 18).dividedBy(shortTokenConversion, 0);
@@ -165,7 +159,7 @@ contract ShaaveChildHelper is Test, UniswapHelper {
     }
 
     function getGains(uint _backingBaseAmount, uint _amountIn, uint _baseTokenConversion, uint _percentageReduction, address _testShaaveChild) internal view returns (uint gains) {
-        uint debtAfterRepay = getOutstandingDebt(SHORT_TOKEN, _testShaaveChild) * (10 ** (18 - getAssetDecimals(SHORT_TOKEN)));      // Wei
+        uint debtAfterRepay = getOutstandingDebt(SHORT_TOKEN, _testShaaveChild) * (10 ** (18 - IERC20Metadata(SHORT_TOKEN).decimals()));      // Wei
         uint backingBaseAmountWei = (_backingBaseAmount - _amountIn) * _baseTokenConversion;
 
         uint priceOfShortTokenInBase = SHORT_TOKEN.pricedIn(BASE_TOKEN);                      // Wei
@@ -202,7 +196,7 @@ contract ShaaveChildHelper is Test, UniswapHelper {
 }
 
 
-contract TestChildShort is Test, ShaaveChildHelper {
+contract ShortTest is Test, ShaaveChildHelper {
     using AddressArray for address[];
 
     // Contracts
@@ -219,8 +213,11 @@ contract TestChildShort is Test, ShaaveChildHelper {
 
     function setUp() public {
         // Instantiate Child
-        testShaaveChild = new Child(address(this), BASE_TOKEN, getAssetDecimals(BASE_TOKEN), getShaaveLTV(BASE_TOKEN));
+        console.log("Before");
+        testShaaveChild = new Child(address(this), BASE_TOKEN, IERC20Metadata(BASE_TOKEN).decimals(), getShaaveLTV(BASE_TOKEN));
+        console.log("After");
     }
+
 
     // All collaterals; shorting BTC
     function test_short_all(uint amountMultiplier) public {
@@ -234,17 +231,15 @@ contract TestChildShort is Test, ShaaveChildHelper {
             if (!BANNED_COLLATERAL.includes(reserves[i])) {
 
                 // Instantiate Child
-                testShaaveChild = new Child(address(this), testBaseToken, getAssetDecimals(testBaseToken), getShaaveLTV(testBaseToken));
+                testShaaveChild = new Child(address(this), testBaseToken, IERC20Metadata(testBaseToken).decimals(), getShaaveLTV(testBaseToken));
 
                 // Setup
-                uint collateralAmount = (10 ** IwERC20(reserves[i]).decimals()) * amountMultiplier; // 1 uint in correct decimals
+                uint collateralAmount = (10 ** IERC20Metadata(reserves[i]).decimals()) * amountMultiplier; // 1 uint in correct decimals
 
                 // Supply
                 if (testBaseToken != SHORT_TOKEN) {
                     // Setup
-                    deal(testBaseToken, address(this), collateralAmount);
-                    IERC20(testBaseToken).approve(AAVE_POOL, collateralAmount);
-                    IPool(AAVE_POOL).supply(testBaseToken, collateralAmount, address(testShaaveChild), 0);
+                    deal(testBaseToken, address(testShaaveChild), collateralAmount);
 
                     // Expectations
                     uint borrowAmount = getBorrowAmount(collateralAmount, testBaseToken);
@@ -282,13 +277,10 @@ contract TestChildShort is Test, ShaaveChildHelper {
 
                     // Test Aave tokens 
                     uint acceptableTolerance = 3;
-                    //console.log("aTokenBalance:", aTokenBalance);
                     int collateralDiff = int(collateralAmount) - int(aTokenBalance);
                     uint collateralDiffAbs = collateralDiff < 0 ? uint(-collateralDiff) : uint(collateralDiff);
                     int debtDiff = int(amountIn) - int(debtTokenBalance);
                     uint debtDiffAbs = debtDiff < 0 ? uint(-debtDiff) : uint(debtDiff);
-                    //console.log("collateralDiffAbs:", collateralDiffAbs, "acceptableTolerance:", acceptableTolerance);
-                    //console.log("debtDiffAbs:", debtDiffAbs, "acceptableTolerance:", acceptableTolerance);
                     assert(collateralDiffAbs <= acceptableTolerance);  // Small tolerance, due to potential interest
                     assert(debtDiffAbs <= acceptableTolerance);        // Small tolerance, due to potential interest
                     assertEq(baseTokenBalance, amountOut, "Incorrect baseTokenBalance.");
@@ -300,7 +292,7 @@ contract TestChildShort is Test, ShaaveChildHelper {
 }
 
 
-contract TestChildSellAll is Test, ShaaveChildHelper {
+contract SellAllTest is Test, ShaaveChildHelper {
 
     // Contracts
     Child testShaaveChild;
@@ -311,12 +303,10 @@ contract TestChildSellAll is Test, ShaaveChildHelper {
     
     function setUp() public {
         // Instantiate Child
-        testShaaveChild = new Child(address(this), BASE_TOKEN, getAssetDecimals(BASE_TOKEN), getShaaveLTV(BASE_TOKEN));
+        testShaaveChild = new Child(address(this), BASE_TOKEN, IERC20Metadata(BASE_TOKEN).decimals(), getShaaveLTV(BASE_TOKEN));
 
         // Add short position, so we can sell
-        deal(BASE_TOKEN, address(this), TEST_COLLATERAL_AMOUNT);
-        IERC20(BASE_TOKEN).approve(AAVE_POOL, TEST_COLLATERAL_AMOUNT);
-        IPool(AAVE_POOL).supply(BASE_TOKEN, TEST_COLLATERAL_AMOUNT, address(testShaaveChild), 0);
+        deal(BASE_TOKEN, address(testShaaveChild), TEST_COLLATERAL_AMOUNT);
         bool success = testShaaveChild.short(SHORT_TOKEN, TEST_COLLATERAL_AMOUNT, address(this));
         assert(success);
 
@@ -335,7 +325,7 @@ contract TestChildSellAll is Test, ShaaveChildHelper {
         Child.PositionData[] memory preAccountingData = testShaaveChild.getAccountingData();
 
         /// @dev Expectations
-        uint baseTokenConversion = 10 ** (18 - getAssetDecimals(BASE_TOKEN));
+        uint baseTokenConversion = 10 ** (18 - IERC20Metadata(BASE_TOKEN).decimals());
         (uint amountIn, uint amountOut) = swapToShortToken(SHORT_TOKEN, BASE_TOKEN, preAccountingData[0].shortTokenAmountsSwapped[0], preAccountingData[0].backingBaseAmount, baseTokenConversion);
         vm.expectEmit(true, true, true, true, address(testShaaveChild));
         emit SwapSuccess(address(this), BASE_TOKEN, amountIn, SHORT_TOKEN, amountOut);
@@ -483,7 +473,7 @@ contract TestChildSellAll is Test, ShaaveChildHelper {
     }
 
 
-    function test_fail_reduecePosition_amount(uint percentageReduction) public {
+    function testCannot_reduecePosition_amount(uint percentageReduction) public {
         vm.assume(percentageReduction > 100);
 
         /// @dev Expectations
@@ -494,7 +484,7 @@ contract TestChildSellAll is Test, ShaaveChildHelper {
     }
 }
 
-contract TestChildSellSome is Test, ShaaveChildHelper {
+contract SellSomeTest is Test, ShaaveChildHelper {
 
     // Contracts
     Child testShaaveChild;
@@ -504,12 +494,10 @@ contract TestChildSellSome is Test, ShaaveChildHelper {
 
     function setUp() public {
         // Instantiate Child
-        testShaaveChild = new Child(address(this), BASE_TOKEN, getAssetDecimals(BASE_TOKEN), getShaaveLTV(BASE_TOKEN));
+        testShaaveChild = new Child(address(this), BASE_TOKEN, IERC20Metadata(BASE_TOKEN).decimals(), getShaaveLTV(BASE_TOKEN));
 
         // Add short position, so we can sell
-        deal(BASE_TOKEN, address(this), TEST_COLLATERAL_AMOUNT);
-        IERC20(BASE_TOKEN).approve(AAVE_POOL, TEST_COLLATERAL_AMOUNT);
-        IPool(AAVE_POOL).supply(BASE_TOKEN, TEST_COLLATERAL_AMOUNT, address(testShaaveChild), 0);
+        deal(BASE_TOKEN, address(testShaaveChild), TEST_COLLATERAL_AMOUNT);
         assert(testShaaveChild.short(SHORT_TOKEN, TEST_COLLATERAL_AMOUNT, address(this)));
 
         // Post short assertions
