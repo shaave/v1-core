@@ -1,0 +1,17 @@
+Requirement ID,Description
+Shaave1,Shaave manages account creation
+Shaave1.1,Shaave creates a child contract with collateral X as backing token when user does not have a shorting history with collateral X
+Shaave1.2,Shaave references pre-existing child contract with collateral X as backing token when user does have a shorting history with collateral X
+Shaave2,Shaave shorts user position of token X with collateral token Y
+Shaave2.1,Shaave shall reject short commands with any unsupported collateral token Y
+Shaave2.2,Shaave retrieves needed collateral amount from the Aave protocol to short
+Shaave2.3,Shaave computes Shaave loan to value ratio
+Shaave2.4,Shaave shorts using any type of collateral
+Shaave2.5,Shaave opens short positions on any type of short token for each collateral
+Shaave3,Shaave reduces user position of token X with collateral token Y
+Shaave3.1,Shaave pays zero gains out to user when user's short lost money
+Shaave3.2,Shaave pays nonzero gains out to user when user's short gained money
+Shaave3.3,Shaave pays gains out to user in accordance to user's position reduction
+Shaave4,Shaave pays outstanding debt to Aave protocol
+Shaave5,Shaave obtains user accounting data
+Shaave6,Shaave withdraws collateral from the Aave protocol
