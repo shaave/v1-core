@@ -14,12 +14,11 @@ pragma solidity ^0.8.10;
 // import "@aave-protocol/interfaces/IPool.sol";
 // import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-
 // contract ShaaveParentHelper is Test {
 //     using ShaavePricing for address;
 //     using Math for uint;
 
-//     // Constants              
+//     // Constants
 //     uint constant public LTV_BUFFER = 10;
 
 //     function getShaaveLTV(address baseToken) internal view returns (int) {
@@ -30,13 +29,12 @@ pragma solidity ^0.8.10;
 //         return int(aaveLTV) - int(LTV_BUFFER);
 //     }
 
-
 //     function calculateNeededCollateral(uint _shortTokenAmount) internal view returns (uint) {
 //         uint shortTokenDecimals = IERC20Metadata(SHORT_TOKEN).decimals();
 //         uint baseTokenDecimals = IERC20Metadata(BASE_TOKEN).decimals();
 //         uint baseTokenConversion = 10 ** (18 - baseTokenDecimals);
 
-//         uint priceOfShortTokenInBase = SHORT_TOKEN.pricedIn(BASE_TOKEN) / baseTokenConversion;   // Units: base token decimals               
+//         uint priceOfShortTokenInBase = SHORT_TOKEN.pricedIn(BASE_TOKEN) / baseTokenConversion;   // Units: base token decimals
 //         uint amountShortTokenBase = (_shortTokenAmount * priceOfShortTokenInBase).dividedBy(10 ** shortTokenDecimals, 0); // Units: base token decimals
 
 //         uint shaaveLTV = uint(getShaaveLTV(BASE_TOKEN));
@@ -44,7 +42,6 @@ pragma solidity ^0.8.10;
 //         return (amountShortTokenBase / shaaveLTV) * 100;
 //     }
 // }
-
 
 // contract ShaaveParentDataTest is Test, ShaaveParentHelper {
 
@@ -77,5 +74,3 @@ pragma solidity ^0.8.10;
 //         /// @dev Act
 //         shaaveParent.getNeededCollateralAmount(SHORT_TOKEN, BASE_TOKEN, 0);
 //     }
-
-// }

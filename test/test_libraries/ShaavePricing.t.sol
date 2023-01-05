@@ -12,16 +12,16 @@ import "@aave-protocol/interfaces/IAaveOracle.sol";
 
 contract ShaavePricingTest is Test {
     using ShaavePricing for address;
-    using Math for uint;
+    using Math for uint256;
 
     function test_pricedIn() public {
         // Expectations
-        uint inputTokenPriceUSD = IAaveOracle(AAVE_ORACLE).getAssetPrice(SHORT_TOKEN);
-        uint baseTokenPriceUSD = IAaveOracle(AAVE_ORACLE).getAssetPrice(BASE_TOKEN);
-        uint expectedAssetPriceInBase = inputTokenPriceUSD.dividedBy(baseTokenPriceUSD, 18);  
+        uint256 inputTokenPriceUSD = IAaveOracle(AAVE_ORACLE).getAssetPrice(SHORT_TOKEN);
+        uint256 baseTokenPriceUSD = IAaveOracle(AAVE_ORACLE).getAssetPrice(BASE_TOKEN);
+        uint256 expectedAssetPriceInBase = inputTokenPriceUSD.dividedBy(baseTokenPriceUSD, 18);
 
         // Act
-        uint assetPriceInBase = SHORT_TOKEN.pricedIn(BASE_TOKEN);
+        uint256 assetPriceInBase = SHORT_TOKEN.pricedIn(BASE_TOKEN);
 
         // Assertions
         assertEq(assetPriceInBase, expectedAssetPriceInBase);

@@ -5,15 +5,14 @@ import "forge-std/Test.sol";
 import "../../src/libraries/Math.sol";
 
 contract MathTest is Test {
-    using Math for uint;
+    using Math for uint256;
 
     function test_dividedBy() public {
-
         // Setup
-        uint numerator     = 13;
-        uint denominator   = 3;
-        uint precision     = 0;
-        uint quotient;
+        uint256 numerator = 13;
+        uint256 denominator = 3;
+        uint256 precision = 0;
+        uint256 quotient;
 
         // Act
         quotient = numerator.dividedBy(denominator, precision);
@@ -23,12 +22,11 @@ contract MathTest is Test {
     }
 
     function test_dividedBy_nonzeroPrecision() public {
-
         // Setup
-        uint numerator     = 13;
-        uint denominator   = 3;
-        uint precision     = 18;
-        uint quotient;
+        uint256 numerator = 13;
+        uint256 denominator = 3;
+        uint256 precision = 18;
+        uint256 quotient;
 
         // Act
         quotient = numerator.dividedBy(denominator, precision);
