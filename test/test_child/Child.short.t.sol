@@ -20,8 +20,7 @@ import "../common/constants.t.sol";
 3. XXX Reduce position by < 100%, with gains, and ensure correct amount gets paid
 4. Reduce position by < 100%, with no gains and ensure no gains
 5. Try to short with all supported collateral -- nested for loop for short tokens?
-6. Then, parent can be tested
-*/
+6. Then, parent can be tested*/
 
 contract ShortTest is ShaaveChildHelper {
     using AddressArray for address[];
@@ -108,7 +107,9 @@ contract ShortTest is ShaaveChildHelper {
                     // Length
                     assertEq(accountingData.length, 1, "Incorrect accountingData length.");
                     assertEq(
-                        accountingData[0].shortTokenAmountsSwapped.length, 1, "Incorrect shortTokenAmountsSwapped length."
+                        accountingData[0].shortTokenAmountsSwapped.length,
+                        1,
+                        "Incorrect shortTokenAmountsSwapped length."
                     );
                     assertEq(accountingData[0].baseAmountsReceived.length, 1, "Incorrect baseAmountsReceived length.");
                     assertEq(accountingData[0].collateralAmounts.length, 1, "Incorrect collateralAmounts length.");

@@ -40,11 +40,7 @@ library ReturnCapital {
         uint256 _percentageReduction,
         uint256 _positionbackingBaseAmount,
         uint256 _totalShortTokenDebt
-    )
-        internal
-        view
-        returns (uint256 gains)
-    {
+    ) internal view returns (uint256 gains) {
         uint256 priceOfShortTokenInBase = _shortToken.pricedIn(_baseTokenAddress); // Wei
         uint256 debtValueBase = (priceOfShortTokenInBase * _totalShortTokenDebt) / 1e18; // Wei
         if (_positionbackingBaseAmount > debtValueBase) {
