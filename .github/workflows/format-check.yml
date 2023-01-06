@@ -50,21 +50,6 @@ jobs:
         with:
           version: nightly
 
-      - name: Generate format differences
+      - name: Format check
         run: |
-          forge fmt
-          git diff > $GITHUB_WORKSPACE/style_differences.txt
-
-      - name: Archive Static Analysis Artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: style_differences
-          path: style_differences.txt
-
-      - name: Error on differences
-        run: |
-          if [[ -s style_differences.txt ]];
-          then
-            cat style_differences.txt
-            exit -1
-          fi
+          forge fmt --check
