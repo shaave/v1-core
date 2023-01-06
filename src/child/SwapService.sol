@@ -69,10 +69,7 @@ abstract contract SwapService {
         uint256 _outputTokenAmount,
         uint256 _inputMax,
         uint256 _baseTokenConversion
-    )
-        internal
-        returns (uint256 amountIn, uint256 amountOut)
-    {
+    ) internal returns (uint256 amountIn, uint256 amountOut) {
         TransferHelper.safeApprove(_inputToken, address(SWAP_ROUTER), _inputMax);
 
         ISwapRouter.ExactOutputSingleParams memory params = ISwapRouter.ExactOutputSingleParams({
@@ -112,11 +109,7 @@ abstract contract SwapService {
         uint256 _baseTokenConversion,
         uint256 _positionReduction,
         uint256 _backingBaseAmount
-    )
-        internal
-        view
-        returns (uint256)
-    {
+    ) internal view returns (uint256) {
         /// @dev Units: baseToken decimals
         uint256 priceOfShortTokenInBase = _shortToken.pricedIn(_baseToken) / _baseTokenConversion;
 

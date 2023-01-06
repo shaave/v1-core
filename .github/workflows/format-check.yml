@@ -1,4 +1,4 @@
-name: Unit Test
+name: Format Check
 
 # Run on all push and pull requests
 on:
@@ -30,26 +30,41 @@ jobs:
           skip_after_successful_duplicate: 'true'
           do_not_skip: '["pull_request", "workflow_dispatch", "schedule"]'
 
-  unit-test:
-    name: Run unit tests
+  format-checker:
+    name: Run format check
+    #Continue if check-for-duplicates found no duplicates. Always runs for pull-requests.
+    needs: check-for-duplicates
+    if: ${{ needs.check-for-duplicates.outputs.should_skip != 'true' }}
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
+    timeout-minutes: 15
+
+    steps: 
+      - name: Checkout bundle
+        uses: actions/checkout@v3
         with:
           submodules: recursive
+          repository: shaave/v1-core
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: nightly
 
-      - name: Run Forge build
+      - name: Generate format differences
         run: |
-          forge --version
-          forge build --sizes
-        id: build
+          forge fmt
+          git diff > $GITHUB_WORKSPACE/style_differences.txt
 
-      - name: Run Forge tests
+      - name: Archive Static Analysis Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: style_differences
+          path: style_differences.txt
+
+      - name: Error on differences
         run: |
-          forge test --fork-url https://rpc.ankr.com/polygon -vvv
-        id: test
+          if [[ -s style_differences.txt ]];
+          then
+            cat style_differences.txt
+            exit -1
+          fi

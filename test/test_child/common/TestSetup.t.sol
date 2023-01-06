@@ -55,10 +55,7 @@ contract UniswapHelper is Test {
         uint256 _outputTokenAmount,
         uint256 _inputMax,
         uint256 baseTokenConversion
-    )
-        internal
-        returns (uint256 amountIn, uint256 amountOut)
-    {
+    ) internal returns (uint256 amountIn, uint256 amountOut) {
         /// Take snapshot of blockchain state
         uint256 id = vm.snapshot();
 
@@ -96,11 +93,7 @@ contract UniswapHelper is Test {
         address _shortToken,
         uint256 _backingBaseAmount,
         uint256 baseTokenConversion
-    )
-        internal
-        view
-        returns (uint256)
-    {
+    ) internal view returns (uint256) {
         /// @dev Units: baseToken decimals
         uint256 priceOfShortTokenInBase = _shortToken.pricedIn(BASE_TOKEN) / baseTokenConversion;
 
@@ -163,11 +156,7 @@ contract ShaaveChildHelper is UniswapHelper {
         uint256 _baseTokenConversion,
         uint256 _percentageReduction,
         address _testShaaveChild
-    )
-        internal
-        view
-        returns (uint256 gains)
-    {
+    ) internal view returns (uint256 gains) {
         uint256 debtAfterRepay =
             getOutstandingDebt(SHORT_TOKEN, _testShaaveChild) * (10 ** (18 - IERC20Metadata(SHORT_TOKEN).decimals())); // Wei
         uint256 backingBaseAmountWei = (_backingBaseAmount - _amountIn) * _baseTokenConversion;

@@ -159,11 +159,7 @@ contract Child is SwapService, DebtService, Ownable {
         address _paymentToken,
         uint256 _paymentAmount,
         bool _withdrawCollateral
-    )
-        public
-        userOnly
-        returns (bool)
-    {
+    ) public userOnly returns (bool) {
         require(userPositions[_shortToken].backingBaseAmount == 0, "Position is still open.");
         require(_paymentToken == _shortToken || _paymentToken == baseToken, "Pay with short or base token.");
 

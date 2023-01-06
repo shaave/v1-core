@@ -15,9 +15,7 @@ interface IChild {
         address _paymentToken,
         uint256 _paymentAmount,
         bool _withdrawCollateral
-    )
-        external
-        returns (bool);
+    ) external returns (bool);
 
     function getOutstandingDebt(address _shortTokenAddress) external returns (uint256);
 
