@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.10;
 
-import "@aave-protocol/interfaces/IPool.sol";
-
 address constant AAVE_POOL = 0x794a61358D6845594F94dc1DB02A252b5b4814aD;
 address constant AAVE_DATA_PROVIDER = 0x69FA688f1Dc47d4B5d8029D5a35FB7a548310654;
 address constant AAVE_ORACLE = 0xb023e699F5a33916Ea823A16485e259257cA8Bd1;
@@ -35,8 +33,6 @@ uint256 constant WITHDRAWAL_BUFFER = 1e15;
 uint256 constant SHORT_TOKEN_AMOUNT = 1e8;
 
 contract TestUtils {
-    address[] reserves = IPool(AAVE_POOL).getReservesList();
-
     address[] BANNED_COLLATERAL = [
         agEUR_ADDRESS,
         EURS_ADDRESS,
