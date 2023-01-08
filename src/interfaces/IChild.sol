@@ -26,4 +26,6 @@ interface IChild {
     function getAaveAccountData() external returns (uint256, uint256, uint256, uint256, uint256, uint256, uint256);
 
     function withdrawCollateral(uint256 _withdrawAmount) external;
+
+    function baseToken() external returns (address);
 }

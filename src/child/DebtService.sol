@@ -39,10 +39,6 @@ abstract contract DebtService {
         internal
         returns (uint256 borrowAmount)
     {
-        console.log("baseToken:", baseToken);
-        uint256 balance = IERC20(baseToken).balanceOf(address(this));
-        console.log("balance:", balance);
-
         SafeTransferLib.safeApprove(ERC20(baseToken), AAVE_POOL, _baseTokenAmount);
         IPool(AAVE_POOL).supply(baseToken, _baseTokenAmount, address(this), 0);
 

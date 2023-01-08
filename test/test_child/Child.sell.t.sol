@@ -3,7 +3,6 @@ pragma solidity ^0.8.10;
 
 // Foundry
 import "forge-std/Test.sol";
-import "forge-std/console.sol";
 
 // Local file imports
 import "../../src/child/Child.sol";

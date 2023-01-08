@@ -6,7 +6,6 @@ import "@aave-protocol/interfaces/IPool.sol";
 import "@aave-protocol/interfaces/IPoolDataProvider.sol";
 import "@aave-protocol/interfaces/IAaveOracle.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "forge-std/console.sol";
 import "solmate/utils/SafeTransferLib.sol";
 
 // Local
@@ -48,17 +47,12 @@ contract Parent is Ownable {
         public
         returns (bool)
     {
-        // // TODO: make this list based on baned list
-        // (,,,,,bool canBeCollateral,,,,) = IPoolDataProvider(AAVE_DATA_PROVIDER).getReserveConfigurationData(_baseToken);
-
-        // require(canBeCollateral, "Base token not supported.");
-
         // 1. Create new user's child contract, if the user does not already have one
         address child = userContracts[msg.sender][_baseToken];
 
         if (child == address(0)) {
             uint256 shaaveLTV = getShaaveLTV(_baseToken);
-            uint256 decimals = IERC20Metadata(_shortToken).decimals();
+            uint256 decimals = IERC20Metadata(_baseToken).decimals();
             child = address(new Child(msg.sender, _baseToken, decimals, shaaveLTV));
             userContracts[msg.sender][_baseToken] = child;
             childContracts.push(child);
@@ -133,15 +127,16 @@ contract Parent is Ownable {
      *
      */
     function retreiveChildrenByUser() external view onlyOwner returns (address[] memory) {
-        address[] memory children;
         address[] memory reserves = IPool(AAVE_POOL).getReservesList();
 
+        address[] memory children = new address[](reserves.length);
         for (uint256 i; i < reserves.length; i++) {
             address child = userContracts[msg.sender][reserves[i]];
             if (child != address(0)) {
                 children[i] = child;
             }
         }
+
         return children;
     }
 }

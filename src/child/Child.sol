@@ -13,8 +13,6 @@ import "../interfaces/IERC20Metadata.sol";
 import "solmate/utils/SafeTransferLib.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-import "forge-std/console.sol";
-
 /// @title shAave child contract, owned by the Parent
 contract Child is SwapService, DebtService, Ownable {
     using AddressArray for address[];
@@ -56,8 +54,6 @@ contract Child is SwapService, DebtService, Ownable {
      *
      */
     function short(address _shortToken, uint256 _baseTokenAmount, address _user) public onlyOwner returns (bool) {
-        console.log("we got to short.");
-
         // Borrow asset
         uint256 borrowAmount = borrowAsset(_shortToken, _user, _baseTokenAmount);
 

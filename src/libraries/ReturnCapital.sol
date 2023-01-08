@@ -9,8 +9,6 @@ import "./Math.sol";
 // External Package Imports
 import "@aave-protocol/interfaces/IPool.sol";
 
-import "forge-std/console.sol";
-
 /**
  * @title ReturnCapital library
  * @author shAave
@@ -77,16 +75,10 @@ library ReturnCapital {
 
         uint256 loanBackingCollateral = ((totalDebtBase / _shaaveLTV) * 100); // Wei
 
-        console.log("loanBackingCollateral:", loanBackingCollateral);
-
         if (totalCollateralBase > loanBackingCollateral) {
             withdrawalAmount = ((totalCollateralBase - loanBackingCollateral) * 1e10) - WITHDRAWAL_BUFFER; // Wei
         } else {
             withdrawalAmount = 0; // Wei
         }
-
-        console.log("withdrawalAmount:", withdrawalAmount);
-        console.log("totalCollateralBase:", totalCollateralBase);
-        console.log("totalDebtBase:", totalDebtBase);
     }
 }

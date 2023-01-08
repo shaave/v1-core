@@ -1,12 +1,10 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.10;
 
 // Foundry
 import "forge-std/Test.sol";
-import "forge-std/console.sol";
 
 import "@aave-protocol/interfaces/IPool.sol";
-//import "@aave-protocol/interfaces/IPoolDataProvider.sol";
 
 // Local file imports
 import "../../src/child/Child.sol";

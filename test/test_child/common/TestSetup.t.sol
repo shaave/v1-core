@@ -3,7 +3,6 @@ pragma solidity ^0.8.10;
 
 // Foundry
 import "forge-std/Test.sol";
-import "forge-std/console.sol";
 
 // External packages
 import "@uniswap-v3-periphery/interfaces/ISwapRouter.sol";
@@ -123,7 +122,6 @@ contract ShaaveChildHelper is UniswapHelper {
     }
 
     function getBorrowAmount(uint256 _testCollateralAmount, address _baseToken) internal view returns (uint256) {
-        console.log("test Collateral amount:", _testCollateralAmount);
         uint256 baseTokenConversion = 10 ** (18 - IERC20Metadata(_baseToken).decimals());
         uint256 shortTokenConversion = 10 ** (18 - IERC20Metadata(SHORT_TOKEN).decimals());
         uint256 priceOfShortTokenInBase = SHORT_TOKEN.pricedIn(_baseToken);

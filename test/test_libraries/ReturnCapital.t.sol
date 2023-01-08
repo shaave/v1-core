@@ -14,8 +14,6 @@ import "@aave-protocol/interfaces/IAaveOracle.sol";
 import "@aave-protocol/interfaces/IPool.sol";
 import "@uniswap-v3-periphery/libraries/TransferHelper.sol";
 
-import "forge-std/console.sol";
-
 contract ReturnCapitalHelper {
     uint256 public constant LTV_BUFFER = 10;
 

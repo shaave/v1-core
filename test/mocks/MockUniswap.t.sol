@@ -8,8 +8,6 @@ import "@uniswap-v3-periphery/libraries/TransferHelper.sol";
 // Local file imports
 import "../common/constants.t.sol";
 
-import "forge-std/console.sol";
-
 contract MockUniswapGains {
     function exactOutputSingle(ISwapRouter.ExactOutputSingleParams calldata params)
         public
