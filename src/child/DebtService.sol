@@ -7,13 +7,13 @@ import "@aave-protocol/interfaces/IPool.sol";
 
 // Local imports
 import "../interfaces/IERC20Metadata.sol";
-import "../libraries/ShaavePricing.sol";
-import "../libraries/Math.sol";
-import "../libraries/ReturnCapital.sol";
+import "../libraries/PricingLib.sol";
+import "../libraries/MathLib.sol";
+import "../libraries/CapitalLib.sol";
 
 abstract contract DebtService {
-    using ShaavePricing for address;
-    using Math for uint256;
+    using PricingLib for address;
+    using MathLib for uint256;
 
     // Constants
     address public constant AAVE_POOL = 0x794a61358D6845594F94dc1DB02A252b5b4814aD;
@@ -39,10 +39,6 @@ abstract contract DebtService {
         internal
         returns (uint256 borrowAmount)
     {
-        console.log("baseToken:", baseToken);
-        uint256 balance = IERC20(baseToken).balanceOf(address(this));
-        console.log("balance:", balance);
-
         SafeTransferLib.safeApprove(ERC20(baseToken), AAVE_POOL, _baseTokenAmount);
         IPool(AAVE_POOL).supply(baseToken, _baseTokenAmount, address(this), 0);
 
@@ -104,7 +100,7 @@ abstract contract DebtService {
             uint256 maxWithdrawalAmount
         )
     {
-        maxWithdrawalAmount = ReturnCapital.getMaxWithdrawal(address(this), shaaveLTV);
+        maxWithdrawalAmount = CapitalLib.getMaxWithdrawal(address(this), shaaveLTV);
         (totalCollateralBase, totalDebtBase, availableBorrowBase, currentLiquidationThreshold, ltv, healthFactor) =
             IPool(AAVE_POOL).getUserAccountData(address(this)); // Must multiply by 1e10 to get Wei
     }

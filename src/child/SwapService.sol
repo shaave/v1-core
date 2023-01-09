@@ -9,10 +9,10 @@ import "@uniswap-v3-periphery/libraries/TransferHelper.sol";
 
 // Local imports
 import "../interfaces/IERC20Metadata.sol";
-import "../libraries/ShaavePricing.sol";
+import "../libraries/PricingLib.sol";
 
 abstract contract SwapService {
-    using ShaavePricing for address;
+    using PricingLib for address;
 
     // Constants
     uint24 public constant POOL_FEE = 3000;
