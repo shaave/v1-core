@@ -3,34 +3,25 @@ pragma solidity ^0.8.10;
 
 import "forge-std/Test.sol";
 
+import "solmate/utils/SafeTransferLib.sol";
 import "@aave-protocol/interfaces/IPool.sol";
 
 import "../../src/parent/Parent.sol";
-import "solmate/utils/SafeTransferLib.sol";
-import "../../src/libraries/AddressArray.sol";
+import "../../src/child/Child.sol";
+import "../../src/libraries/AddressLib.sol";
 import "../../src/interfaces/IChild.sol";
-import "../common/constants.t.sol";
+import "../common/ChildUtils.t.sol";
 
-contract ShortTest is Test {
-    using AddressArray for address[];
+contract ShortTest is ChildUtils, TestUtils {
+    using AddressLib for address[];
 
-    address[] BANNED_COLLATERAL = [
-        0xE0B52e49357Fd4DAf2c15e02058DCE6BC0057db4,
-        0xE111178A87A3BFf0c8d18DECBa5798827539Ae99,
-        0x4e3Decbb3645551B8A19f0eA1678079FCB33fB4c,
-        0xa3Fa99A148fA48D14Ed51d610c367C61876997F1,
-        0xc2132D05D31c914a87C6611C10748AEb04B58e8F,
-        0x172370d5Cd63279eFa6d502DAB29171933a610AF,
-        0x0b3F868E0BE5597D5DB7fEB59E1CADBb0fdDa50a,
-        0x385Eeac5cB85A38A9a07A70c73e0a3271CfB54A7,
-        0x9a71012B13CA4d3D0Cdc72A177DF3ef03b0E76A3,
-        0x85955046DF4668e1DD369D2DE9f3AEB98DD2A369,
-        0xfa68FB4628DFF1028CFEc22b4162FCcd0d45efb6,
-        0x3A58a54C066FdC0f2D55FC9C89F0415C92eBf3C4
-    ];
-
+    address retrievedBaseToken;
     address[] children;
     address[] baseTokens;
+
+    uint256 expectedChildCount;
+    uint256 preActionChildCount;
+    uint256 postActionChildCount;
 
     // Contracts
     Parent shaaveParent;
@@ -39,54 +30,135 @@ contract ShortTest is Test {
         shaaveParent = new Parent(10);
     }
 
-    function test_addShortPosition() public {
-        // Setup
+    /// @dev tests that child contracts get created, in accordance with first-time shorts
+    function test_addShortPosition_child_creation() public {
+        address[] memory reserves = IPool(AAVE_POOL).getReservesList();
+
+        for (uint256 i = 0; i < reserves.length; i++) {
+            address baseToken = reserves[i];
+            if (!BANNED_COLLATERAL.includes(baseToken)) {
+                if (baseToken != SHORT_TOKEN) {
+                    // Setup
+                    uint256 baseTokenAmount = (10 ** IERC20Metadata(baseToken).decimals()); // 1 unit in correct decimals
+                    deal(baseToken, address(this), baseTokenAmount);
+                    SafeTransferLib.safeApprove(ERC20(baseToken), address(shaaveParent), baseTokenAmount);
+
+                    // Expectations
+                    address child = shaaveParent.userContracts(address(this), baseToken);
+                    assertEq(child, address(0), "child should not exist, but does.");
+
+                    // Act
+                    shaaveParent.addShortPosition(SHORT_TOKEN, baseToken, baseTokenAmount);
+
+                    // Assertions
+                    child = shaaveParent.userContracts(address(this), baseToken);
+                    assertEq(IChild(child).baseToken(), baseToken, "Incorrect baseToken address on child.");
+                }
+            }
+        }
+    }
+
+    /// @dev tests that existing child is utilized for non-first shorts
+    function test_addShortPosition_not_first() public {
         uint256 amountMultiplier = 1;
+        // Setup
+        uint256 baseTokenAmount = (10 ** IERC20Metadata(USDC_ADDRESS).decimals()) * amountMultiplier; // 1 unit in correct decimals * amountMultiplier
+        deal(USDC_ADDRESS, address(this), baseTokenAmount);
+        SafeTransferLib.safeApprove(ERC20(USDC_ADDRESS), address(shaaveParent), baseTokenAmount);
+
+        // Expectations 1
+        uint256 borrowAmount_1 = getBorrowAmount(baseTokenAmount / 2, USDC_ADDRESS);
+        (, uint256 amountOut_1) = swapExactInput(SHORT_TOKEN, USDC_ADDRESS, borrowAmount_1);
+
+        // Act 1: short using USDC
+        shaaveParent.addShortPosition(SHORT_TOKEN, USDC_ADDRESS, baseTokenAmount / 2);
+
+        // Data extraction 1
+        address child = shaaveParent.userContracts(address(this), USDC_ADDRESS);
+        Child.PositionData[] memory accountingData = IChild(child).getAccountingData();
+
+        // Expectations 2
+        uint256 borrowAmount_2 = getBorrowAmount(baseTokenAmount / 2, USDC_ADDRESS);
+        (, uint256 amountOut_2) = swapExactInput(SHORT_TOKEN, USDC_ADDRESS, borrowAmount_2);
+
+        // Act 2: short using USDC again
+        vm.warp(block.timestamp + 120);
+        shaaveParent.addShortPosition(SHORT_TOKEN, USDC_ADDRESS, baseTokenAmount / 2);
+
+        // Data extraction 2 (using same child from first short)
+        accountingData = IChild(child).getAccountingData();
+
+        // Assertions: ensure accounting data reflects more than one short
+        assertEq(accountingData[0].shortTokenAmountsSwapped.length, 2, "Incorrect shortTokenAmountsSwapped length.");
+        assertEq(accountingData[0].backingBaseAmount, amountOut_1 + amountOut_2, "Incorrect backingBaseAmount.");
+    }
+
+    /// @dev tests that child contract accounting data gets updated properly after a short position is opened
+    function test_addShortPosition_accounting(uint256 amountMultiplier) public {
+        // Assumptions
+        vm.assume(amountMultiplier > 0 && amountMultiplier <= 1000);
 
         address[] memory reserves = IPool(AAVE_POOL).getReservesList();
 
-        uint256 childrenCount;
         for (uint256 i = 0; i < reserves.length; i++) {
-            if (!BANNED_COLLATERAL.includes(reserves[i])) {
+            address baseToken = reserves[i];
+            if (!BANNED_COLLATERAL.includes(baseToken)) {
                 if (reserves[i] != SHORT_TOKEN) {
                     // Setup
-                    uint256 baseTokenAmount = (10 ** IERC20Metadata(reserves[i]).decimals()) * amountMultiplier; // 1 unit in correct decimals
-                    deal(reserves[i], address(this), baseTokenAmount);
-                    SafeTransferLib.safeApprove(ERC20(reserves[i]), address(shaaveParent), baseTokenAmount);
+                    uint256 baseTokenAmount = (10 ** IERC20Metadata(baseToken).decimals()) * amountMultiplier; // 1 unit in correct decimals * amountMultiplier
+                    deal(baseToken, address(this), baseTokenAmount);
+                    SafeTransferLib.safeApprove(ERC20(baseToken), address(shaaveParent), baseTokenAmount);
 
                     // Expectations
-                    address[] memory childContracts = shaaveParent.retreiveChildrenByUser();
-                    uint256 nonZeroAddressCount;
-                    for (uint256 j = 0; j < childContracts.length; j++) {
-                        if (childContracts[j] != address(0)) {
-                            baseTokens.push(IChild(childContracts[j]).baseToken());
-                            nonZeroAddressCount++;
-                        }
-                    }
-
-                    uint256 preActionChildCount = nonZeroAddressCount;
-                    assertEq(preActionChildCount, childrenCount, "preAction count off");
-                    assert(!baseTokens.includes(reserves[i]));
+                    uint256 borrowAmount = getBorrowAmount(baseTokenAmount, baseToken);
+                    (uint256 amountIn, uint256 amountOut) = swapExactInput(SHORT_TOKEN, baseToken, borrowAmount);
 
                     // Act
-                    shaaveParent.addShortPosition(SHORT_TOKEN, reserves[i], baseTokenAmount);
+                    shaaveParent.addShortPosition(SHORT_TOKEN, baseToken, baseTokenAmount);
 
                     // Post-action data extraction
-                    childContracts = shaaveParent.retreiveChildrenByUser();
+                    address child = shaaveParent.userContracts(address(this), baseToken);
+                    Child.PositionData[] memory accountingData = IChild(child).getAccountingData();
+                    (uint256 aTokenBalance, uint256 debtTokenBalance, uint256 baseTokenBalance, uint256 userBaseBalance)
+                    = getTokenData(child, baseToken);
 
                     // Assertions
-                    delete baseTokens;
-                    nonZeroAddressCount = 0;
-                    for (uint256 k = 0; k < childContracts.length; k++) {
-                        if (childContracts[k] != address(0)) {
-                            baseTokens.push(IChild(childContracts[k]).baseToken());
-                            nonZeroAddressCount++;
-                        }
-                    }
-                    assertEq(nonZeroAddressCount, preActionChildCount + 1, "postAction count off");
-                    assert(baseTokens.includes(reserves[i]));
+                    // Length
+                    assertEq(accountingData.length, 1, "Incorrect accountingData length.");
+                    assertEq(
+                        accountingData[0].shortTokenAmountsSwapped.length,
+                        1,
+                        "Incorrect shortTokenAmountsSwapped length."
+                    );
+                    assertEq(accountingData[0].baseAmountsReceived.length, 1, "Incorrect baseAmountsReceived length.");
+                    assertEq(accountingData[0].collateralAmounts.length, 1, "Incorrect collateralAmounts length.");
+                    assertEq(accountingData[0].baseAmountsSwapped.length, 0, "Incorrect baseAmountsSwapped length.");
+                    assertEq(
+                        accountingData[0].shortTokenAmountsReceived.length,
+                        0,
+                        "Incorrect shortTokenAmountsReceived length."
+                    );
 
-                    childrenCount++;
+                    // Values
+                    assertEq(
+                        accountingData[0].shortTokenAmountsSwapped[0], amountIn, "Incorrect shortTokenAmountsSwapped."
+                    );
+                    assertEq(accountingData[0].baseAmountsReceived[0], amountOut, "Incorrect baseAmountsReceived.");
+                    assertEq(accountingData[0].collateralAmounts[0], baseTokenAmount, "Incorrect collateralAmounts.");
+                    assertEq(accountingData[0].backingBaseAmount, amountOut, "Incorrect backingBaseAmount.");
+                    assertEq(accountingData[0].shortTokenAddress, SHORT_TOKEN, "Incorrect shortTokenAddress.");
+                    assertEq(accountingData[0].hasDebt, true, "Incorrect hasDebt.");
+
+                    // Token balances
+                    uint256 acceptableTolerance = 3;
+                    int256 collateralDiff = int256(baseTokenAmount) - int256(aTokenBalance);
+                    uint256 collateralDiffAbs = collateralDiff < 0 ? uint256(-collateralDiff) : uint256(collateralDiff);
+                    int256 debtDiff = int256(amountIn) - int256(debtTokenBalance);
+                    uint256 debtDiffAbs = debtDiff < 0 ? uint256(-debtDiff) : uint256(debtDiff);
+                    assert(collateralDiffAbs <= acceptableTolerance); // Small tolerance, due to potential interest
+                    assert(debtDiffAbs <= acceptableTolerance); // Small tolerance, due to potential interest
+                    assertEq(baseTokenBalance, amountOut, "Incorrect baseTokenBalance.");
+                    assertEq(userBaseBalance, 0, "Incorrect baseTokenBalance.");
                 }
             }
         }

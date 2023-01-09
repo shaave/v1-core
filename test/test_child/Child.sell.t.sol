@@ -7,11 +7,12 @@ import "forge-std/Test.sol";
 // Local file imports
 import "../../src/child/Child.sol";
 import "../../src/interfaces/IERC20Metadata.sol";
-import ".././mocks/MockUniswap.t.sol";
-import "./common/TestSetup.t.sol";
-import "../common/constants.t.sol";
 
-contract SellAllTest is ShaaveChildHelper {
+import ".././mocks/MockUniswap.t.sol";
+import "../common/ChildUtils.t.sol";
+import "../common/Constants.t.sol";
+
+contract SellAllTest is ChildUtils {
     // Contracts
     Child testShaaveChild;
 
@@ -218,7 +219,7 @@ contract SellAllTest is ShaaveChildHelper {
     }
 }
 
-contract SellSomeTest is Test, ShaaveChildHelper {
+contract SellSomeTest is ChildUtils {
     // Contracts
     Child testShaaveChild;
 

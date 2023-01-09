@@ -6,7 +6,7 @@ import "@uniswap-v3-periphery/interfaces/ISwapRouter.sol";
 import "@uniswap-v3-periphery/libraries/TransferHelper.sol";
 
 // Local file imports
-import "../common/constants.t.sol";
+import "../common/Constants.t.sol";
 
 contract MockUniswapGains {
     function exactOutputSingle(ISwapRouter.ExactOutputSingleParams calldata params)

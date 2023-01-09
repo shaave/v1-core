@@ -2,10 +2,10 @@
 pragma solidity ^0.8.10;
 
 import "forge-std/Test.sol";
-import "../../src/libraries/AddressArray.sol";
+import "../../src/libraries/AddressLib.sol";
 
 contract AddressArrayTest is Test {
-    using AddressArray for address[];
+    using AddressLib for address[];
 
     address[] private testArray;
     address[] private expectedArray;

@@ -1,4 +1,4 @@
-// contracts/libraries/ReturnCapital.sol
+// contracts/libraries/CapitalLib.sol
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.10;
 
@@ -7,7 +7,7 @@ pragma solidity ^0.8.10;
  * @author shAave
  * @dev Implements the logic for manipulating arrays.
  */
-library AddressArray {
+library AddressLib {
     function removeAddress(address[] storage _array, address _address) internal {
         for (uint256 i; i < _array.length; i++) {
             if (_array[i] == _address) {

@@ -3,22 +3,20 @@ pragma solidity ^0.8.10;
 
 // External Packages
 import "@aave-protocol/interfaces/IPool.sol";
-import "@aave-protocol/interfaces/IPoolDataProvider.sol";
-import "@aave-protocol/interfaces/IAaveOracle.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "solmate/utils/SafeTransferLib.sol";
 
 // Local
+import "../child/Child.sol";
+import "../libraries/PricingLib.sol";
 import "../interfaces/IChild.sol";
 import "../interfaces/IERC20Metadata.sol";
-import "../child/Child.sol";
-import "../libraries/ShaavePricing.sol";
 
 /// @title shAave parent contract, which orchestrates children contracts
 contract Parent is Ownable {
-    using ShaavePricing for address;
-    using AddressArray for address[];
-    using Math for uint256;
+    using PricingLib for address;
+    using AddressLib for address[];
+    using MathLib for uint256;
 
     // -- Parent Variables --
     mapping(address => mapping(address => address)) public userContracts;
@@ -126,17 +124,17 @@ contract Parent is Ownable {
      * @return children An array of a single user's associated child contracts.
      *
      */
-    function retreiveChildrenByUser() external view onlyOwner returns (address[] memory) {
+    function retreiveChildrenByUser() external view onlyOwner returns (address[2][] memory) {
         address[] memory reserves = IPool(AAVE_POOL).getReservesList();
 
-        address[] memory children = new address[](reserves.length);
+        address[2][] memory childDataArray = new address[2][](reserves.length);
         for (uint256 i; i < reserves.length; i++) {
             address child = userContracts[msg.sender][reserves[i]];
             if (child != address(0)) {
-                children[i] = child;
+                childDataArray[i] = [child, reserves[i]];
             }
         }
 
-        return children;
+        return childDataArray;
     }
 }

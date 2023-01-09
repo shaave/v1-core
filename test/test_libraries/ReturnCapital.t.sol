@@ -2,12 +2,12 @@
 pragma solidity ^0.8.10;
 
 import "forge-std/Test.sol";
-import "../../src/libraries/ReturnCapital.sol";
-import "../../src/libraries/ShaavePricing.sol";
-import "../../src/libraries/Math.sol";
+import "../../src/libraries/CapitalLib.sol";
+import "../../src/libraries/PricingLib.sol";
+import "../../src/libraries/MathLib.sol";
 import "../../src/child/Child.sol";
 import "../../src/interfaces/IERC20Metadata.sol";
-import "../common/constants.t.sol";
+import "../common/Constants.t.sol";
 
 // External package imports
 import "@aave-protocol/interfaces/IAaveOracle.sol";
@@ -15,8 +15,6 @@ import "@aave-protocol/interfaces/IPool.sol";
 import "@uniswap-v3-periphery/libraries/TransferHelper.sol";
 
 contract ReturnCapitalHelper {
-    uint256 public constant LTV_BUFFER = 10;
-
     function getShaaveLTV(address baseToken) internal view returns (int256) {
         uint256 bitMap = IPool(AAVE_POOL).getReserveData(baseToken).configuration.data;
         uint256 lastNbits = 16; // bit 0-15: LTV
@@ -27,8 +25,8 @@ contract ReturnCapitalHelper {
 }
 
 contract GainsTest is Test, ReturnCapitalHelper {
-    using Math for uint256;
-    using ShaavePricing for address;
+    using MathLib for uint256;
+    using PricingLib for address;
 
     uint256 constant FULL_REDUCTION = 100;
     uint256 constant TEST_SHORT_TOKEN_DEBT = 100e18; // 100 tokens
@@ -41,7 +39,7 @@ contract GainsTest is Test, ReturnCapitalHelper {
         uint256 positionBackingBaseAmount = debtValueInBase - valueLost;
 
         // Act
-        uint256 gains = ReturnCapital.getPositionGains(
+        uint256 gains = CapitalLib.getPositionGains(
             SHORT_TOKEN, BASE_TOKEN, FULL_REDUCTION, positionBackingBaseAmount, TEST_SHORT_TOKEN_DEBT
         );
 
@@ -57,7 +55,7 @@ contract GainsTest is Test, ReturnCapitalHelper {
         uint256 positionBackingBaseAmount = debtValueInBase + valueAccrued;
 
         // Act
-        uint256 gains = ReturnCapital.getPositionGains(
+        uint256 gains = CapitalLib.getPositionGains(
             SHORT_TOKEN, BASE_TOKEN, FULL_REDUCTION, positionBackingBaseAmount, TEST_SHORT_TOKEN_DEBT
         );
 
@@ -67,8 +65,8 @@ contract GainsTest is Test, ReturnCapitalHelper {
 }
 
 contract WithdrawalHelper is Test {
-    using Math for uint256;
-    using ShaavePricing for address;
+    using MathLib for uint256;
+    using PricingLib for address;
 
     function calculateMaxWithdrawal(address testChild, uint256 shaaveLTV)
         internal
@@ -98,26 +96,11 @@ contract WithdrawalHelper is Test {
     }
 }
 
-contract WithdrawalTest is Test, ReturnCapitalHelper, WithdrawalHelper {
-    using AddressArray for address[];
+contract WithdrawalTest is Test, ReturnCapitalHelper, WithdrawalHelper, TestUtils {
+    using AddressLib for address[];
 
     Child[] children;
     uint256[] shaaveLTVs;
-    // MAI, USDT, EURS, agEUR, jEUR
-    address[] BANNED_COLLATERAL = [
-        0xa3Fa99A148fA48D14Ed51d610c367C61876997F1,
-        0xc2132D05D31c914a87C6611C10748AEb04B58e8F,
-        0xE111178A87A3BFf0c8d18DECBa5798827539Ae99,
-        0xE0B52e49357Fd4DAf2c15e02058DCE6BC0057db4,
-        0x4e3Decbb3645551B8A19f0eA1678079FCB33fB4c,
-        0x172370d5Cd63279eFa6d502DAB29171933a610AF,
-        0x0b3F868E0BE5597D5DB7fEB59E1CADBb0fdDa50a,
-        0x385Eeac5cB85A38A9a07A70c73e0a3271CfB54A7,
-        0x9a71012B13CA4d3D0Cdc72A177DF3ef03b0E76A3,
-        0x85955046DF4668e1DD369D2DE9f3AEB98DD2A369,
-        0x3A58a54C066FdC0f2D55FC9C89F0415C92eBf3C4,
-        0xfa68FB4628DFF1028CFEc22b4162FCcd0d45efb6
-    ];
 
     function setUp() public {
         address[] memory reserves = IPool(AAVE_POOL).getReservesList();
@@ -136,7 +119,7 @@ contract WithdrawalTest is Test, ReturnCapitalHelper, WithdrawalHelper {
 
     function test_getMaxWithdrawal_zeroWithdrawal() public {
         // Act
-        uint256 withdrawalAmount = ReturnCapital.getMaxWithdrawal(CHILD_ADDRESS, uint256(getShaaveLTV(BASE_TOKEN)));
+        uint256 withdrawalAmount = CapitalLib.getMaxWithdrawal(CHILD_ADDRESS, uint256(getShaaveLTV(BASE_TOKEN)));
 
         // Assertions
         assertEq(withdrawalAmount, 0);
@@ -164,7 +147,7 @@ contract WithdrawalTest is Test, ReturnCapitalHelper, WithdrawalHelper {
             uint256 expectedMaxWithdrawal = calculateMaxWithdrawal(address(children[i]), shaaveLTVs[i]);
 
             // Act
-            uint256 actualWithdrawalAmount = ReturnCapital.getMaxWithdrawal(address(children[i]), shaaveLTVs[i]);
+            uint256 actualWithdrawalAmount = CapitalLib.getMaxWithdrawal(address(children[i]), shaaveLTVs[i]);
 
             // Assertions
             assertEq(actualWithdrawalAmount, expectedMaxWithdrawal);

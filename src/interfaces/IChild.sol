@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.10;
 
+import "../child/Child.sol";
+
 interface IChild {
     function short(address _shortTokenAddress, uint256 _baseTokenAmount, address _userAddress)
         external
@@ -21,7 +23,7 @@ interface IChild {
 
     function getOutstandingDebtBase(address _shortTokenAddress) external returns (uint256);
 
-    function getAccountingData() external;
+    function getAccountingData() external returns (Child.PositionData[] memory);
 
     function getAaveAccountData() external returns (uint256, uint256, uint256, uint256, uint256, uint256, uint256);
 

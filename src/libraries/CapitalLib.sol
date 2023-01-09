@@ -1,22 +1,22 @@
-// contracts/libraries/ReturnCapital.sol
+// contracts/libraries/CapitalLib.sol
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.10;
 
 // Local Imports
-import "./ShaavePricing.sol";
-import "./Math.sol";
+import "./PricingLib.sol";
+import "./MathLib.sol";
 
 // External Package Imports
 import "@aave-protocol/interfaces/IPool.sol";
 
 /**
- * @title ReturnCapital library
+ * @title CapitalLib library
  * @author shAave
  * @dev Implements the logic related to reducing a short position.
  */
-library ReturnCapital {
-    using Math for uint256;
-    using ShaavePricing for address;
+library CapitalLib {
+    using MathLib for uint256;
+    using PricingLib for address;
 
     address constant aavePoolAddress = 0x794a61358D6845594F94dc1DB02A252b5b4814aD;
     uint256 constant WITHDRAWAL_BUFFER = 1e15; // TODO: cut this in half?

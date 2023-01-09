@@ -4,9 +4,9 @@ pragma solidity ^0.8.10;
 // Local Imports
 import "./SwapService.sol";
 import "./DebtService.sol";
-import "../libraries/ShaavePricing.sol";
-import "../libraries/ReturnCapital.sol";
-import "../libraries/AddressArray.sol";
+import "../libraries/PricingLib.sol";
+import "../libraries/CapitalLib.sol";
+import "../libraries/AddressLib.sol";
 import "../interfaces/IERC20Metadata.sol";
 
 // External Package Imports
@@ -15,9 +15,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @title shAave child contract, owned by the Parent
 contract Child is SwapService, DebtService, Ownable {
-    using AddressArray for address[];
-    using ShaavePricing for address;
-    using Math for uint256;
+    using AddressLib for address[];
+    using PricingLib for address;
+    using MathLib for uint256;
 
     // Child Variables
     struct PositionData {
@@ -114,7 +114,7 @@ contract Child is SwapService, DebtService, Ownable {
 
         // Withdraw correct percentage of collateral, and return to user
         if (_withdrawCollateral) {
-            uint256 withdrawalAmount = ReturnCapital.getMaxWithdrawal(address(this), shaaveLTV);
+            uint256 withdrawalAmount = CapitalLib.getMaxWithdrawal(address(this), shaaveLTV);
 
             if (withdrawalAmount > 0) {
                 withdraw(withdrawalAmount / baseTokenConversion);
@@ -123,7 +123,7 @@ contract Child is SwapService, DebtService, Ownable {
 
         // If trade was profitable, pay user gains
         uint256 backingBaseAmountWei = (userPositions[_shortToken].backingBaseAmount - amountIn) * baseTokenConversion;
-        uint256 gains = ReturnCapital.getPositionGains(
+        uint256 gains = CapitalLib.getPositionGains(
             _shortToken, baseToken, _percentageReduction, backingBaseAmountWei, debtAfterRepay
         );
         if (gains > 0) {
@@ -174,7 +174,7 @@ contract Child is SwapService, DebtService, Ownable {
 
         // Optionally withdraw collateral
         if (_withdrawCollateral) {
-            uint256 withdrawalAmount = ReturnCapital.getMaxWithdrawal(address(this), shaaveLTV);
+            uint256 withdrawalAmount = CapitalLib.getMaxWithdrawal(address(this), shaaveLTV);
             withdraw(withdrawalAmount);
         }
 
@@ -208,7 +208,7 @@ contract Child is SwapService, DebtService, Ownable {
      *
      */
     function withdrawCollateral(uint256 _amount) public userOnly {
-        uint256 maxWithdrawalAmount = ReturnCapital.getMaxWithdrawal(address(this), shaaveLTV);
+        uint256 maxWithdrawalAmount = CapitalLib.getMaxWithdrawal(address(this), shaaveLTV);
 
         require(_amount <= maxWithdrawalAmount, "Exceeds max withdrawal amount.");
 

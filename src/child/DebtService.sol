@@ -7,13 +7,13 @@ import "@aave-protocol/interfaces/IPool.sol";
 
 // Local imports
 import "../interfaces/IERC20Metadata.sol";
-import "../libraries/ShaavePricing.sol";
-import "../libraries/Math.sol";
-import "../libraries/ReturnCapital.sol";
+import "../libraries/PricingLib.sol";
+import "../libraries/MathLib.sol";
+import "../libraries/CapitalLib.sol";
 
 abstract contract DebtService {
-    using ShaavePricing for address;
-    using Math for uint256;
+    using PricingLib for address;
+    using MathLib for uint256;
 
     // Constants
     address public constant AAVE_POOL = 0x794a61358D6845594F94dc1DB02A252b5b4814aD;
@@ -100,7 +100,7 @@ abstract contract DebtService {
             uint256 maxWithdrawalAmount
         )
     {
-        maxWithdrawalAmount = ReturnCapital.getMaxWithdrawal(address(this), shaaveLTV);
+        maxWithdrawalAmount = CapitalLib.getMaxWithdrawal(address(this), shaaveLTV);
         (totalCollateralBase, totalDebtBase, availableBorrowBase, currentLiquidationThreshold, ltv, healthFactor) =
             IPool(AAVE_POOL).getUserAccountData(address(this)); // Must multiply by 1e10 to get Wei
     }
